@@ -11,7 +11,11 @@
   <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/1018/1018525.png">
   <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/1018/1018525.png">
 
+  <!-- Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Supabase PostgreSQL Client SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
   <style>
     /* Full Screen Loader Overlay */
     #spinnerOverlay {
@@ -45,7 +49,6 @@
       border-radius: 8px;
     }
 
-    /* Clickable Card Hover Effect */
     .clickable-card {
       cursor: pointer;
       transition: transform 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
@@ -81,17 +84,45 @@
   <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2 flex-wrap gap-2">
     <div class="d-flex align-items-center gap-2">
       <img src="https://cdn-icons-png.flaticon.com/512/1018/1018525.png" alt="Colony Logo" class="app-brand-icon shadow-sm">
-      <h3 class="mb-0 fw-bold">Colony Maintenance</h3>
+      <div>
+        <h3 class="mb-0 fw-bold">Eklavya Homes </h3>
+        <small class="text-primary fw-semibold">⚡ PostgreSQL Connected</small>
+      </div>
     </div>
     <div class="no-print d-flex align-items-center gap-2 flex-wrap">
-      <!-- Month Filter -->
-      <div class="d-flex align-items-center bg-white px-2 py-1 rounded border shadow-sm">
-        <label for="filterMonth" class="me-2 fw-bold text-secondary mb-0 small">Mahina:</label>
-        <input type="month" id="filterMonth" class="form-control form-control-sm border-0" onchange="renderStatusCards()">
-      </div>
       <button id="btnInstall" class="btn btn-warning btn-sm shadow-sm" style="display: none;">📲 Install</button>
       <button class="btn btn-outline-primary btn-sm" onclick="fetchData(true)">🔄 Refresh</button>
       <button class="btn btn-outline-dark btn-sm" onclick="window.print()">🖨️ Print</button>
+    </div>
+  </div>
+
+  <!-- Multi-Filter Bar -->
+  <div class="card p-2 mb-3 bg-white shadow-sm no-print">
+    <div class="row g-2 align-items-center">
+      <div class="col-md-3 col-6">
+        <label class="small fw-bold text-secondary mb-1">📅 Mahina Chunein:</label>
+        <input type="month" id="filterMonth" class="form-control form-control-sm" onchange="renderFilteredViews()">
+      </div>
+      <div class="col-md-3 col-6">
+        <label class="small fw-bold text-secondary mb-1">🏷️ Category Filter:</label>
+        <select id="filterCategory" class="form-select form-select-sm" onchange="renderFilteredViews()">
+          <option value="ALL">Sabhi Categories</option>
+          <option value="Maintenance">Maintenance</option>
+          <option value="Bijli Bill">Bijli Bill</option>
+          <option value="Donation">Donation</option>
+          <option value="Event / Function">Event / Function</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+      <div class="col-md-4 col-12">
+        <label class="small fw-bold text-secondary mb-1">👤 Member-Wise Filter:</label>
+        <select id="filterMember" class="form-select form-select-sm" onchange="renderFilteredViews()">
+          <option value="ALL">Sabhi Members (All)</option>
+        </select>
+      </div>
+      <div class="col-md-2 col-12 d-flex align-items-end">
+        <button class="btn btn-outline-secondary btn-sm w-100 mt-md-4" onclick="resetFilters()">Reset Filter</button>
+      </div>
     </div>
   </div>
 
@@ -121,7 +152,7 @@
     </div>
     <div class="col-6 col-md-2">
       <div class="card bg-secondary text-white p-3 text-center shadow-sm h-100">
-        <h6 class="small">Total Collection</h6>
+        <h6 class="small">Selected Collection</h6>
         <h4 id="dashIncome" class="mb-0">₹0</h4>
       </div>
     </div>
@@ -162,6 +193,13 @@
           <select id="incMember" class="form-select mb-2" required>
             <option value="">Member Chunein</option>
           </select>
+          <select id="incCategory" class="form-select mb-2" required>
+            <option value="Maintenance">Maintenance</option>
+            <option value="Bijli Bill">Bijli Bill</option>
+            <option value="Donation">Donation</option>
+            <option value="Event / Function">Event / Function</option>
+            <option value="Other">Other</option>
+          </select>
           <input type="month" id="incMonth" class="form-control mb-2" required>
           <input type="number" id="incAmount" class="form-control mb-2" placeholder="Rakam (₹)" required>
           <button type="submit" class="btn btn-success w-100">🔒 Entry Save Karein</button>
@@ -188,11 +226,14 @@
     <!-- Member Directory Table -->
     <div class="col-md-4">
       <div class="card p-3 shadow-sm">
-        <h5>👥 Colony Members List</h5>
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h5 class="mb-0">👥 Colony Members List</h5>
+          <span class="badge bg-dark" id="badgeMemberCount">0 Members</span>
+        </div>
         <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
           <table class="table table-sm table-hover">
             <thead class="table-light">
-              <tr><th>ID</th><th>Naam</th><th>Phone</th><th class="no-print">Action</th></tr>
+              <tr><th>ID</th><th>Naam</th><th>Phone</th><th class="no-print text-center">Action</th></tr>
             </thead>
             <tbody id="memberTable"></tbody>
           </table>
@@ -200,14 +241,17 @@
       </div>
     </div>
 
-    <!-- Collection History -->
+    <!-- Collection History (Filtered) with Edit Action -->
     <div class="col-md-4">
       <div class="card p-3 shadow-sm">
-        <h5>📥 Aamadni Record</h5>
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h5 class="mb-0">📥 Aamadni Record</h5>
+          <span class="badge bg-success" id="badgeFilteredIncome">₹0</span>
+        </div>
         <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
           <table class="table table-sm table-hover">
             <thead class="table-light">
-              <tr><th>ID</th><th>Mahina</th><th>Rakam</th></tr>
+              <tr><th>ID</th><th>Category</th><th>Mahina</th><th>Rakam</th><th class="no-print text-center">Action</th></tr>
             </thead>
             <tbody id="incomeTable"></tbody>
           </table>
@@ -218,7 +262,10 @@
     <!-- Expense History -->
     <div class="col-md-4">
       <div class="card p-3 shadow-sm">
-        <h5>📤 Kharch Record</h5>
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h5 class="mb-0">📤 Kharch Record</h5>
+          <span class="badge bg-danger" id="badgeExpenseTotal">₹0</span>
+        </div>
         <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
           <table class="table table-sm table-hover">
             <thead class="table-light">
@@ -232,9 +279,9 @@
   </div>
 </div>
 
-<!-- Modal for Paid / Unpaid Members List with Share Features -->
+<!-- Modal: Paid / Unpaid List -->
 <div class="modal fade" id="memberListModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
     <div class="modal-content">
       <div class="modal-header" id="modalHeaderBg">
         <h5 class="modal-title fw-bold text-white" id="modalTitle">Members List</h5>
@@ -248,7 +295,7 @@
               <tr>
                 <th>ID</th>
                 <th>Naam</th>
-                <th id="modalDynamicCol">Details</th>
+                <th id="modalDynamicCol">Details / Breakup</th>
               </tr>
             </thead>
             <tbody id="modalTableBody"></tbody>
@@ -257,7 +304,6 @@
       </div>
       <div class="modal-footer d-flex justify-content-between align-items-center">
         <div class="d-flex gap-2">
-          <!-- WhatsApp Share & Copy Buttons -->
           <button type="button" class="btn btn-success btn-sm shadow-sm" onclick="shareOnWhatsApp()">
             📲 WhatsApp Par Share Karein
           </button>
@@ -271,59 +317,111 @@
   </div>
 </div>
 
+<!-- Modal: Edit Member -->
+<div class="modal fade" id="editMemberModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title fw-bold">✏️ Member Detail Update Karein</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="editMemberForm">
+          <input type="hidden" id="editMemberOriginalId">
+          <div class="mb-3">
+            <label class="form-label small fw-bold">Member ID / Flat (Not Editable)</label>
+            <input type="text" id="editMemberId" class="form-control" disabled readonly>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-bold">Member Name</label>
+            <input type="text" id="editMemberName" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-bold">Mobile Number</label>
+            <input type="tel" id="editMemberPhone" class="form-control" required>
+          </div>
+          <button type="submit" class="btn btn-primary w-100">🔒 Update Member Details</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Edit Collection / Amount -->
+<div class="modal fade" id="editCollectionModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title fw-bold">✏️ Amount / Entry Update Karein</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="editCollectionForm">
+          <input type="hidden" id="editCollectionId">
+          <div class="mb-3">
+            <label class="form-label small fw-bold">Member Name & ID</label>
+            <input type="text" id="editCollectionMember" class="form-control" disabled readonly>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-bold">Category</label>
+            <select id="editCollectionCategory" class="form-select" required>
+              <option value="Maintenance">Maintenance</option>
+              <option value="Bijli Bill">Bijli Bill</option>
+              <option value="Donation">Donation</option>
+              <option value="Event / Function">Event / Function</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-bold">Mahina (Month)</label>
+            <input type="month" id="editCollectionMonth" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-bold">Amount (₹)</label>
+            <input type="number" id="editCollectionAmount" class="form-control" required>
+          </div>
+          <button type="submit" class="btn btn-success w-100">🔒 Update Amount & Save</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby3qRboyYF__XMFVtDWgostAilvtHjA2WP1WWier-pUrUa-q1aCjAl81pBD8D6hqSdPKA/exec";
+  // ========================================================
+  // SUPABASE POSTGRESQL CONFIGURATION
+  // ========================================================
+  const SUPABASE_URL = "https://tmywtousvisfaiprcnwl.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_rqSuYc6wMdhNVxL5fGKxxw__wJNZGB3";
   const ADMIN_PASSWORD = "eladmin";
 
-  let rawData = { members: [], collections: [], expenses: [] };
-  let allMembers = [];
-  let deferredPrompt;
-  let memberModalInstance;
-  let currentModalType = 'paid'; // Current modal state
+  const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  // Set Default Month (2026-09)
+  let allMembers = [];
+  let allCollections = [];
+  let allExpenses = [];
+  let memberModalInstance;
+  let editMemberModalInstance;
+  let editCollectionModalInstance;
+  let currentModalType = 'paid';
+
+  // Set Default Month
   const now = new Date();
   const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   document.getElementById('filterMonth').value = currentMonthStr;
   document.getElementById('incMonth').value = currentMonthStr;
+  document.getElementById('expDate').valueAsDate = new Date();
 
-  // --- PWA Installation Logic ---
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js')
-      .then(() => console.log('Service Worker Active'))
-      .catch(err => console.log('SW Registration Failed', err));
-  }
-
-  window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-    const installBtn = document.getElementById('btnInstall');
-    if (installBtn) installBtn.style.display = 'block';
-  });
-
-  document.getElementById('btnInstall').addEventListener('click', async () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') {
-        document.getElementById('btnInstall').style.display = 'none';
-      }
-      deferredPrompt = null;
-    }
-  });
-
-  // Password verification
   function checkAdminPassword() {
     const pass = prompt("🔐 Kripya Admin Password darj karein:");
     if (pass === null) return false;
     if (pass === ADMIN_PASSWORD) return true;
-    alert("❌ Galat Password! Aapko entry karne ki anumati nahi hai.");
+    alert("❌ Galat Password! Aapko anumati nahi hai.");
     return false;
   }
 
-  // Spinner Controls
-  function showSpinner(message = "Kripya intezar karein, data process ho raha hai...") {
+  function showSpinner(message = "Process ho raha hai...") {
     document.getElementById('spinnerText').innerText = message;
     document.getElementById('spinnerOverlay').style.display = 'flex';
   }
@@ -332,101 +430,140 @@
     document.getElementById('spinnerOverlay').style.display = 'none';
   }
 
-  // Toast Notification
   function showSuccess(msg) {
     const toast = document.getElementById('successToast');
     document.getElementById('toastMessage').innerHTML = `✅ <strong>Success!</strong> ${msg}`;
     toast.style.display = 'block';
-    setTimeout(() => { toast.style.display = 'none'; }, 3500);
+    setTimeout(() => { toast.style.display = 'none'; }, 3000);
   }
 
+  function resetFilters() {
+    document.getElementById('filterMonth').value = currentMonthStr;
+    document.getElementById('filterCategory').value = 'ALL';
+    document.getElementById('filterMember').value = 'ALL';
+    renderFilteredViews();
+  }
+
+  // Super-Fast PostgreSQL Fetch
   async function fetchData(isManualRefresh = false) {
     if (isManualRefresh) showSpinner("Data refresh ho raha hai...");
     try {
-      const res = await fetch(SCRIPT_URL);
-      rawData = await res.json();
-      
-      allMembers = (rawData.members || []).map((m, i) => ({
-        rowId: m.rowId || (i + 2),
-        id: String(m.id || m.flat || m.ID || "").trim(),
-        name: String(m.name || m.Name || "").trim(),
-        phone: String(m.phone || m.Mobileno || m.mobile || "").trim()
+      const [resMembers, resCollections, resExpenses] = await Promise.all([
+        db.from('members').select('*').order('id', { ascending: true }),
+        db.from('collections').select('*').order('created_at', { ascending: false }),
+        db.from('expenses').select('*').order('expense_date', { ascending: false })
+      ]);
+
+      if (resMembers.error) throw resMembers.error;
+      if (resCollections.error) throw resCollections.error;
+      if (resExpenses.error) throw resExpenses.error;
+
+      // Unique member mapping
+      const uniqueMemMap = new Map();
+      (resMembers.data || []).forEach(m => {
+        const id = String(m.id || "").trim();
+        if (id && !uniqueMemMap.has(id)) {
+          uniqueMemMap.set(id, {
+            id: id,
+            name: String(m.name || "").trim(),
+            phone: String(m.phone || "").trim()
+          });
+        }
+      });
+      allMembers = Array.from(uniqueMemMap.values());
+
+      allCollections = (resCollections.data || []).map(c => ({
+        id: c.id,
+        member_id: String(c.member_id || "").trim(),
+        name: String(c.name || "").trim(),
+        month: String(c.month || "").trim(),
+        category: String(c.category || "Maintenance").trim(),
+        amount: Number(c.amount || 0)
       }));
 
-      renderUI(rawData);
+      allExpenses = (resExpenses.data || []).map(e => ({
+        id: e.id,
+        description: String(e.description || "").trim(),
+        expense_date: String(e.expense_date || "").trim(),
+        amount: Number(e.amount || 0)
+      }));
+
+      populateDropdowns();
+      renderFilteredViews();
       if (isManualRefresh) showSuccess("Data taaza ho gaya hai!");
     } catch (err) {
-      console.error(err);
-      alert("Data load karne me problem aayi! Internet check karein.");
+      console.error("Fetch Error:", err);
+      alert("Database error: " + err.message);
     } finally {
-      if (isManualRefresh) hideSpinner();
+      hideSpinner();
     }
   }
 
-  // Month Parser with Timezone Fix
-  function parseToYYYYMM(val) {
-    if (!val) return "";
-    let str = String(val).trim();
+  function populateDropdowns() {
+    const incMemberSelect = document.getElementById('incMember');
+    incMemberSelect.innerHTML = '<option value="">Member Chunein</option>';
 
-    // 1. Agar UTC Timestamp hai
-    if (str.includes('T') && str.endsWith('Z')) {
-      const d = new Date(str);
-      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    }
-
-    // 2. Agar direct text me DD/MM/YYYY ya DD-MM-YYYY hai
-    const matchSlash = str.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
-    if (matchSlash) {
-      return `${matchSlash[3]}-${String(matchSlash[2]).padStart(2, '0')}`;
-    }
-
-    // 3. Agar plain YYYY-MM hai
-    const matchISO = str.match(/^(\d{4})-(\d{2})/);
-    if (matchISO) {
-      return `${matchISO[1]}-${matchISO[2]}`;
-    }
-
-    // 4. Default Date parse
-    try {
-      const d = new Date(str);
-      if (!isNaN(d.getTime())) {
-        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      }
-    } catch(e) {}
-
-    return str;
-  }
-
-  // Calculate Paid vs Unpaid for selected month
-  function getMonthStatus(selectedMonth) {
-    const paidList = [];
-    const unpaidList = [];
-    const targetMonth = parseToYYYYMM(selectedMonth);
-
-    const paidById = {};
-    const paidByName = {};
-
-    (rawData.collections || []).forEach(c => {
-      const cMonth = parseToYYYYMM(c.month || c.Month || c.date || c.Date);
-      
-      if (cMonth === targetMonth) {
-        const idVal = String(c.id || c.flat || c.ID || "").replace(/\s+/g, "").toLowerCase();
-        const nameVal = String(c.name || c.Name || "").replace(/\s+/g, "").toLowerCase();
-        const amt = Number(c.amount || c.Amount || 0);
-
-        if (idVal) paidById[idVal] = (paidById[idVal] || 0) + amt;
-        if (nameVal) paidByName[nameVal] = (paidByName[nameVal] || 0) + amt;
-      }
-    });
+    const filterMemberSelect = document.getElementById('filterMember');
+    const currentSelected = filterMemberSelect.value;
+    filterMemberSelect.innerHTML = '<option value="ALL">Sabhi Members (All)</option>';
 
     allMembers.forEach(m => {
-      const idKey = String(m.id).replace(/\s+/g, "").toLowerCase();
-      const nameKey = String(m.name).replace(/\s+/g, "").toLowerCase();
+      incMemberSelect.innerHTML += `<option value="${m.id}|${m.name}">${m.id} - ${m.name}</option>`;
+      filterMemberSelect.innerHTML += `<option value="${m.id}">${m.id} - ${m.name}</option>`;
+    });
 
-      const paidAmount = paidById[idKey] || paidByName[nameKey];
+    if (currentSelected && filterMemberSelect.querySelector(`option[value="${currentSelected}"]`)) {
+      filterMemberSelect.value = currentSelected;
+    }
+  }
 
-      if (paidAmount !== undefined && paidAmount > 0) {
-        paidList.push({ ...m, paidAmount: paidAmount });
+  function getFilteredData() {
+    const sMonth = document.getElementById('filterMonth').value;
+    const sCat = document.getElementById('filterCategory').value;
+    const sMem = document.getElementById('filterMember').value;
+
+    return allCollections.filter(c => {
+      const matchMonth = !sMonth || c.month === sMonth;
+      const matchCat = sCat === 'ALL' || c.category === sCat;
+      const matchMem = sMem === 'ALL' || c.member_id === sMem;
+      return matchMonth && matchCat && matchMem;
+    });
+  }
+
+  function getMonthStatus() {
+    const sMonth = document.getElementById('filterMonth').value;
+    const sCat = document.getElementById('filterCategory').value;
+    const sMem = document.getElementById('filterMember').value;
+
+    const relevantCollections = allCollections.filter(c => {
+      const matchMonth = !sMonth || c.month === sMonth;
+      const matchCat = sCat === 'ALL' || c.category === sCat;
+      return matchMonth && matchCat;
+    });
+
+    const paidMap = {};
+    relevantCollections.forEach(c => {
+      const key = c.member_id.toLowerCase();
+      if (!paidMap[key]) {
+        paidMap[key] = { total: 0, entries: [] };
+      }
+      paidMap[key].total += c.amount;
+      paidMap[key].entries.push(c);
+    });
+
+    const paidList = [];
+    const unpaidList = [];
+
+    allMembers.forEach(m => {
+      if (sMem !== 'ALL' && m.id !== sMem) return;
+
+      const key = m.id.toLowerCase();
+      if (paidMap[key] && paidMap[key].total > 0) {
+        paidList.push({
+          ...m,
+          paidAmount: paidMap[key].total,
+          entries: paidMap[key].entries
+        });
       } else {
         unpaidList.push(m);
       }
@@ -435,71 +572,171 @@
     return { paidList, unpaidList };
   }
 
-  function renderStatusCards() {
-    const selectedMonth = document.getElementById('filterMonth').value;
-    const { paidList, unpaidList } = getMonthStatus(selectedMonth);
+  function renderFilteredViews() {
+    const filteredCollections = getFilteredData();
+    const { paidList, unpaidList } = getMonthStatus();
 
-    document.getElementById('dashPaidCount').innerText = paidList.length;
-    document.getElementById('dashUnpaidCount').innerText = unpaidList.length;
-  }
-
-  function renderUI(data) {
-    // 1. Member Dropdown & Member Table
-    const select = document.getElementById('incMember');
+    // 1. Members Table with Edit Button
     const memTable = document.getElementById('memberTable');
-    select.innerHTML = '<option value="">Member Chunein</option>';
     memTable.innerHTML = '';
-
     allMembers.forEach(m => {
-      select.innerHTML += `<option value="${m.id}|${m.name}">${m.id} - ${m.name}</option>`;
       memTable.innerHTML += `
         <tr>
           <td><strong>${m.id}</strong></td>
           <td>${m.name}</td>
           <td>${m.phone ? `<a href="tel:${m.phone}" class="text-decoration-none">${m.phone}</a>` : '-'}</td>
-          <td class="no-print">
-            <button class="btn btn-sm btn-outline-danger py-0" title="Delete Member" onclick="deleteMember(${m.rowId})">✕</button>
+          <td class="no-print text-center">
+            <button class="btn btn-sm btn-outline-primary py-0 px-1 me-1" title="Edit Member" onclick="openEditMember('${m.id}')">✏️</button>
+            <button class="btn btn-sm btn-outline-danger py-0 px-1" title="Delete Member" onclick="deleteMember('${m.id}')">🗑️</button>
           </td>
         </tr>`;
     });
+    document.getElementById('badgeMemberCount').innerText = `${allMembers.length} Members`;
 
-    // 2. Income Table
-    let totalInc = 0;
+    // 2. Collection Table with Edit Button
+    let totalIncome = 0;
     const incTable = document.getElementById('incomeTable');
     incTable.innerHTML = '';
-    (data.collections || []).forEach(c => {
-      const amt = Number(c.amount || c.Amount || 0);
-      totalInc += amt;
-      const cId = c.id || c.flat || c.ID || "";
-      const cM = parseToYYYYMM(c.month || c.Month);
-      incTable.innerHTML += `<tr><td>${cId}</td><td>${cM}</td><td>₹${amt}</td></tr>`;
+    filteredCollections.forEach(c => {
+      totalIncome += c.amount;
+      incTable.innerHTML += `
+        <tr>
+          <td><strong>${c.member_id}</strong></td>
+          <td><span class="badge bg-light text-dark border">${c.category}</span></td>
+          <td>${c.month}</td>
+          <td class="text-success fw-bold">₹${c.amount}</td>
+          <td class="no-print text-center">
+            <button class="btn btn-sm btn-outline-primary py-0 px-1 me-1" title="Edit Entry" onclick="openEditCollection(${c.id})">✏️</button>
+            <button class="btn btn-sm btn-outline-danger py-0 px-1" title="Delete Entry" onclick="deleteCollection(${c.id})">🗑️</button>
+          </td>
+        </tr>`;
     });
+    document.getElementById('badgeFilteredIncome').innerText = `₹${totalIncome}`;
 
-    // 3. Expense Table
-    let totalExp = 0;
+    // 3. Expenses Table
+    let totalExpense = 0;
     const expTable = document.getElementById('expenseTable');
     expTable.innerHTML = '';
-    (data.expenses || []).forEach(e => {
-      const amt = Number(e.amount || e.Amount || 0);
-      totalExp += amt;
-      const d = e.date ? new Date(e.date).toLocaleDateString() : '';
-      expTable.innerHTML += `<tr><td>${e.desc || e.Desc}</td><td>${d}</td><td>₹${amt}</td></tr>`;
+    allExpenses.forEach(e => {
+      totalExpense += e.amount;
+      expTable.innerHTML += `
+        <tr>
+          <td>${e.description}</td>
+          <td>${e.expense_date}</td>
+          <td class="text-danger fw-bold">₹${e.amount}</td>
+        </tr>`;
     });
+    document.getElementById('badgeExpenseTotal').innerText = `₹${totalExpense}`;
 
-    // Totals
+    // 4. Update Summary Dashboard
     document.getElementById('dashMembers').innerText = allMembers.length;
-    document.getElementById('dashIncome').innerText = `₹${totalInc}`;
-    document.getElementById('dashExpense').innerText = `₹${totalExp}`;
-    document.getElementById('dashBalance').innerText = `₹${totalInc - totalExp}`;
-
-    renderStatusCards();
+    document.getElementById('dashPaidCount').innerText = paidList.length;
+    document.getElementById('dashUnpaidCount').innerText = unpaidList.length;
+    document.getElementById('dashIncome').innerText = `₹${totalIncome}`;
+    document.getElementById('dashExpense').innerText = `₹${totalExpense}`;
+    document.getElementById('dashBalance').innerText = `₹${totalIncome - totalExpense}`;
   }
 
-  // Tap handler to open Modal for Paid or Unpaid Members
+  // ==========================================
+  // EDIT LOGIC: MEMBER
+  // ==========================================
+  function openEditMember(id) {
+    const mem = allMembers.find(m => m.id === id);
+    if (!mem) return;
+
+    document.getElementById('editMemberOriginalId').value = mem.id;
+    document.getElementById('editMemberId').value = mem.id;
+    document.getElementById('editMemberName').value = mem.name;
+    document.getElementById('editMemberPhone').value = mem.phone;
+
+    if (!editMemberModalInstance) {
+      editMemberModalInstance = new bootstrap.Modal(document.getElementById('editMemberModal'));
+    }
+    editMemberModalInstance.show();
+  }
+
+  document.getElementById('editMemberForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    if (!checkAdminPassword()) return;
+
+    const id = document.getElementById('editMemberOriginalId').value;
+    const name = document.getElementById('editMemberName').value.trim();
+    const phone = document.getElementById('editMemberPhone').value.trim();
+
+    showSpinner("Member update ho raha hai...");
+    const { error } = await db.from('members').update({ name, phone }).eq('id', id);
+
+    if (error) {
+      alert("Error: " + error.message);
+    } else {
+      editMemberModalInstance.hide();
+      showSuccess("Member details safaltapoorvak update ho gayi!");
+      fetchData();
+    }
+    hideSpinner();
+  });
+
+  // ==========================================
+  // EDIT LOGIC: COLLECTION / AMOUNT
+  // ==========================================
+  function openEditCollection(colId) {
+    const col = allCollections.find(c => c.id === colId);
+    if (!col) return;
+
+    document.getElementById('editCollectionId').value = col.id;
+    document.getElementById('editCollectionMember').value = `${col.member_id} - ${col.name}`;
+    document.getElementById('editCollectionCategory').value = col.category;
+    document.getElementById('editCollectionMonth').value = col.month;
+    document.getElementById('editCollectionAmount').value = col.amount;
+
+    if (!editCollectionModalInstance) {
+      editCollectionModalInstance = new bootstrap.Modal(document.getElementById('editCollectionModal'));
+    }
+    editCollectionModalInstance.show();
+  }
+
+  document.getElementById('editCollectionForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    if (!checkAdminPassword()) return;
+
+    const colId = document.getElementById('editCollectionId').value;
+    const category = document.getElementById('editCollectionCategory').value;
+    const month = document.getElementById('editCollectionMonth').value;
+    const amount = Number(document.getElementById('editCollectionAmount').value);
+
+    showSpinner("Amount update ho raha hai...");
+    const { error } = await db.from('collections').update({ category, month, amount }).eq('id', colId);
+
+    if (error) {
+      alert("Error: " + error.message);
+    } else {
+      editCollectionModalInstance.hide();
+      showSuccess("Collection amount safaltapoorvak update ho gaya!");
+      fetchData();
+    }
+    hideSpinner();
+  });
+
+  async function deleteCollection(colId) {
+    if (!checkAdminPassword()) return;
+    if (confirm("Kya aap sach me is payment entry ko delete karna chahte hain?")) {
+      showSpinner("Entry delete ho rahi hai...");
+      const { error } = await db.from('collections').delete().eq('id', colId);
+      if (error) alert(error.message);
+      else {
+        showSuccess("Payment entry hata di gayi!");
+        fetchData();
+      }
+      hideSpinner();
+    }
+  }
+
+  // Open Modal showing Multiple payment breakdown
   function showMemberModal(type) {
     currentModalType = type;
-    const selectedMonth = document.getElementById('filterMonth').value;
-    const { paidList, unpaidList } = getMonthStatus(selectedMonth);
+    const { paidList, unpaidList } = getMonthStatus();
+    const sMonth = document.getElementById('filterMonth').value;
+    const sCat = document.getElementById('filterCategory').value;
 
     const modalTitle = document.getElementById('modalTitle');
     const modalSubtitle = document.getElementById('modalSubtitle');
@@ -512,29 +749,33 @@
     if (type === 'paid') {
       modalHeaderBg.className = 'modal-header bg-success';
       modalTitle.innerText = `✅ Paid Members (${paidList.length})`;
-      modalSubtitle.innerText = `Mahina: ${selectedMonth} | In sabhi members ka payment prapt ho chuka hai.`;
-      modalDynamicCol.innerText = "Paid Amount";
+      modalSubtitle.innerText = `Mahina: ${sMonth || 'All'} | Category: ${sCat} | Multiple payments ka kul jod dikhaya gaya hai.`;
+      modalDynamicCol.innerText = "Payment Breakup / Total";
 
       if (paidList.length === 0) {
-        modalTableBody.innerHTML = `<tr><td colspan="3" class="text-center text-muted p-3">Is mahine kisi ne payment nahi kiya hai.</td></tr>`;
+        modalTableBody.innerHTML = `<tr><td colspan="3" class="text-center text-muted p-3">Is filter me koi payment record nahi hai.</td></tr>`;
       } else {
         paidList.forEach(m => {
+          const breakup = m.entries.map(e => `${e.category}: ₹${e.amount}`).join(" + ");
           modalTableBody.innerHTML += `
             <tr>
               <td><strong>${m.id}</strong></td>
               <td>${m.name}</td>
-              <td><span class="badge bg-success fs-6">₹${m.paidAmount}</span></td>
+              <td>
+                <span class="badge bg-success fs-6">Total: ₹${m.paidAmount}</span>
+                <div class="small text-muted mt-1">${breakup}</div>
+              </td>
             </tr>`;
         });
       }
     } else {
       modalHeaderBg.className = 'modal-header bg-danger';
       modalTitle.innerText = `❌ Unpaid Members (${unpaidList.length})`;
-      modalSubtitle.innerText = `Mahina: ${selectedMonth} | In sabhi members ka payment abhi baki hai.`;
+      modalSubtitle.innerText = `Mahina: ${sMonth || 'All'} | Category: ${sCat} | In sabhi members ka payment abhi baki hai.`;
       modalDynamicCol.innerText = "Contact";
 
       if (unpaidList.length === 0) {
-        modalTableBody.innerHTML = `<tr><td colspan="3" class="text-center text-success p-3">🎉 Sabhi members ne is mahine ka payment kar diya hai!</td></tr>`;
+        modalTableBody.innerHTML = `<tr><td colspan="3" class="text-center text-success p-3">🎉 Sabhi members ne is filter ka payment kar diya hai!</td></tr>`;
       } else {
         unpaidList.forEach(m => {
           modalTableBody.innerHTML += `
@@ -555,33 +796,31 @@
     memberModalInstance.show();
   }
 
-  // Generate Message Text for WhatsApp & Copy
   function generateShareText() {
-    const selectedMonth = document.getElementById('filterMonth').value;
-    const { paidList, unpaidList } = getMonthStatus(selectedMonth);
+    const { paidList, unpaidList } = getMonthStatus();
+    const sMonth = document.getElementById('filterMonth').value;
+    const sCat = document.getElementById('filterCategory').value;
 
     let text = "";
-
     if (currentModalType === 'paid') {
       text += `🏢 *COLONY MAINTENANCE - PAID LIST*\n`;
-      text += `📅 *Mahina:* ${selectedMonth}\n`;
-      text += `✅ *Kul Jama Log (Paid):* ${paidList.length}\n`;
+      text += `📅 *Mahina:* ${sMonth || 'All'} | *Category:* ${sCat}\n`;
+      text += `✅ *Kul Jama Log:* ${paidList.length}\n`;
       text += `------------------------------------\n`;
-
       if (paidList.length === 0) {
-        text += `Is mahine koi payment record nahi hai.\n`;
+        text += `Is filter me koi payment record nahi hai.\n`;
       } else {
         paidList.forEach((m, idx) => {
-          text += `${idx + 1}. *${m.id}* - ${m.name} (₹${m.paidAmount})\n`;
+          const breakup = m.entries.map(e => `${e.category}: ₹${e.amount}`).join(", ");
+          text += `${idx + 1}. *${m.id}* - ${m.name} = *₹${m.paidAmount}* (${breakup})\n`;
         });
       }
       text += `------------------------------------\n🙏 Sabhi sahyogiyo ka dhanyawad!`;
     } else {
       text += `⚠️ *COLONY MAINTENANCE - UNPAID REMINDER*\n`;
-      text += `📅 *Mahina:* ${selectedMonth}\n`;
-      text += `❌ *Bakaya Log (Unpaid):* ${unpaidList.length}\n`;
+      text += `📅 *Mahina:* ${sMonth || 'All'} | *Category:* ${sCat}\n`;
+      text += `❌ *Bakaya Log:* ${unpaidList.length}\n`;
       text += `------------------------------------\n`;
-
       if (unpaidList.length === 0) {
         text += `🎉 Sabhi members ne payment clear kar diya hai!\n`;
       } else {
@@ -589,98 +828,114 @@
           text += `${idx + 1}. *${m.id}* - ${m.name}\n`;
         });
       }
-      text += `------------------------------------\n📢 Kripya apna maintenance shulk jald se jald jama karein.`;
+      text += `------------------------------------\n📢 Kripya apna shulk jald se jald jama karein.`;
     }
-
     return text;
   }
 
-  // WhatsApp Share Trigger
   function shareOnWhatsApp() {
     const message = generateShareText();
     const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
   }
 
-  // Copy List to Clipboard
   function copyMemberList() {
     const message = generateShareText();
     navigator.clipboard.writeText(message).then(() => {
       showSuccess("List clipboard par copy ho gayi hai!");
-    }).catch(() => {
-      alert("Copy karne me dikkat aayi!");
     });
   }
 
-  async function sendData(payload, successMsg) {
-    showSpinner("Google Sheet me entry save ho rahi hai...");
-    try {
-      await fetch(SCRIPT_URL, {
-        method: "POST",
-        body: JSON.stringify(payload)
-      });
-      await fetchData();
-      showSuccess(successMsg);
-    } catch (err) {
-      console.error(err);
-      alert("Entry save karne me problem aayi!");
-    } finally {
-      hideSpinner();
-    }
-  }
-
-  // Forms Event Listeners
+  // Member Submit
   document.getElementById('memberForm').addEventListener('submit', async e => {
     e.preventDefault();
     if (!checkAdminPassword()) return;
 
-    await sendData({
-      type: "member",
-      flat: document.getElementById('mFlat').value,
-      name: document.getElementById('mName').value,
-      phone: document.getElementById('mPhone').value
-    }, "Naya member jod diya gaya!");
-    e.target.reset();
+    const id = document.getElementById('mFlat').value.trim();
+    const name = document.getElementById('mName').value.trim();
+    const phone = document.getElementById('mPhone').value.trim();
+
+    showSpinner("Member save ho raha hai...");
+    const { error } = await db.from('members').upsert([{ id, name, phone }]);
+
+    if (error) {
+      alert("Error: " + error.message);
+    } else {
+      e.target.reset();
+      showSuccess("Member add/update ho gaya!");
+      fetchData();
+    }
+    hideSpinner();
   });
 
-  async function deleteMember(rowId) {
+  async function deleteMember(id) {
     if (!checkAdminPassword()) return;
-    if (confirm("Kya aap sach me is member ko hatana chahte hain?")) {
-      await sendData({ type: "delete_member", rowId: rowId }, "Member ko hata diya gaya!");
+    if (confirm(`Kya aap member ${id} ko hatana chahte hain?`)) {
+      showSpinner("Member delete ho raha hai...");
+      const { error } = await db.from('members').delete().eq('id', id);
+      if (error) alert(error.message);
+      else {
+        showSuccess("Member hata diya gaya!");
+        fetchData();
+      }
+      hideSpinner();
     }
   }
 
+  // Collection Submit
   document.getElementById('incomeForm').addEventListener('submit', async e => {
     e.preventDefault();
     if (!checkAdminPassword()) return;
 
+    showSpinner("Paisa darj ho raha hai...");
     const parts = document.getElementById('incMember').value.split('|');
-    await sendData({
-      type: "collection",
-      flat: parts[0],
+    const category = document.getElementById('incCategory').value;
+    const month = document.getElementById('incMonth').value;
+    const amount = document.getElementById('incAmount').value;
+
+    const { error } = await db.from('collections').insert([{
+      member_id: parts[0],
       name: parts[1],
-      month: document.getElementById('incMonth').value,
-      amount: document.getElementById('incAmount').value
-    }, "Maintenance entry safaltapoorvak darj ho gayi!");
-    e.target.reset();
+      category: category,
+      month: month,
+      amount: amount
+    }]);
+
+    if (error) {
+      alert("Error: " + error.message);
+    } else {
+      document.getElementById('incAmount').value = '';
+      showSuccess(`${category} entry safaltapoorvak darj ho gayi!`);
+      fetchData();
+    }
+    hideSpinner();
   });
 
+  // Expense Submit
   document.getElementById('expenseForm').addEventListener('submit', async e => {
     e.preventDefault();
     if (!checkAdminPassword()) return;
 
-    await sendData({
-      type: "expense",
-      desc: document.getElementById('expDesc').value,
-      date: document.getElementById('expDate').value,
+    showSpinner("Kharcha save ho raha hai...");
+    const { error } = await db.from('expenses').insert([{
+      description: document.getElementById('expDesc').value.trim(),
+      expense_date: document.getElementById('expDate').value,
       amount: document.getElementById('expAmount').value
-    }, "Kharch safaltapoorvak darj ho gaya!");
-    e.target.reset();
+    }]);
+
+    if (error) {
+      alert("Error: " + error.message);
+    } else {
+      e.target.reset();
+      showSuccess("Kharch safaltapoorvak darj ho gaya!");
+      fetchData();
+    }
+    hideSpinner();
   });
 
   // Initial Load
-  showSpinner("Data load ho raha hai, kripya intezar karein...");
-  fetchData().then(() => hideSpinner());
+  showSpinner("PostgreSQL se connect ho raha hai...");
+  fetchData();
 </script>
 </body>
 </html>
