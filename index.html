@@ -5,11 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Colony Maintenance Manager</title>
 
-  <!-- PWA & Web App Meta Tags -->
+  <!-- PWA & Online Web App Icon -->
   <link rel="manifest" href="./manifest.json">
   <meta name="theme-color" content="#0d6efd">
-  <link rel="icon" type="image/png" href="./icon-512.png">
-  <link rel="apple-touch-icon" href="./icon-512.png">
+  <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/1018/1018525.png">
+  <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/1018/1018525.png">
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
@@ -38,6 +38,13 @@
       display: none;
     }
 
+    .app-brand-icon {
+      width: 42px;
+      height: 42px;
+      object-fit: contain;
+      border-radius: 8px;
+    }
+
     @media print {
       .no-print { display: none !important; }
       .card { border: none !important; }
@@ -62,9 +69,10 @@
 
 <div class="container">
   <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-2">
-    <div class="d-flex align-items-center">
-      <img src="./icon-512.png" alt="Logo" width="40" height="40" class="rounded me-2 border" onerror="this.style.display='none'">
-      <h3 class="mb-0">🏠 Colony Maintenance</h3>
+    <div class="d-flex align-items-center gap-2">
+      <!-- Direct Online HD Building Icon -->
+      <img src="https://cdn-icons-png.flaticon.com/512/1018/1018525.png" alt="Colony Logo" class="app-brand-icon shadow-sm">
+      <h3 class="mb-0 fw-bold">Colony Maintenance</h3>
     </div>
     <div class="no-print d-flex gap-2">
       <!-- App Install Button -->
@@ -205,7 +213,7 @@
   // --- PWA Installation Logic ---
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js')
-      .then(() => console.log('Service Worker Registered'))
+      .then(() => console.log('Service Worker Active'))
       .catch(err => console.log('SW Registration Failed', err));
   }
 
@@ -227,7 +235,7 @@
     }
   });
 
-  // Password verification helper
+  // Password verification
   function checkAdminPassword() {
     const pass = prompt("🔐 Kripya Admin Password darj karein:");
     if (pass === null) return false;
@@ -236,7 +244,7 @@
     return false;
   }
 
-  // Spinner show/hide functions
+  // Spinner Controls
   function showSpinner(message = "Kripya intezar karein, data process ho raha hai...") {
     document.getElementById('spinnerText').innerText = message;
     document.getElementById('spinnerOverlay').style.display = 'flex';
@@ -246,7 +254,7 @@
     document.getElementById('spinnerOverlay').style.display = 'none';
   }
 
-  // Toast Notification function
+  // Toast Notification
   function showSuccess(msg) {
     const toast = document.getElementById('successToast');
     document.getElementById('toastMessage').innerHTML = `✅ <strong>Success!</strong> ${msg}`;
@@ -329,7 +337,7 @@
     }
   }
 
-  // Member Submit
+  // Forms Event Listeners
   document.getElementById('memberForm').addEventListener('submit', async e => {
     e.preventDefault();
     if (!checkAdminPassword()) return;
@@ -343,7 +351,6 @@
     e.target.reset();
   });
 
-  // Delete Member
   async function deleteMember(rowId) {
     if (!checkAdminPassword()) return;
     if (confirm("Kya aap sach me is member ko hatana chahte hain?")) {
@@ -351,7 +358,6 @@
     }
   }
 
-  // Income Submit
   document.getElementById('incomeForm').addEventListener('submit', async e => {
     e.preventDefault();
     if (!checkAdminPassword()) return;
@@ -367,7 +373,6 @@
     e.target.reset();
   });
 
-  // Expense Submit
   document.getElementById('expenseForm').addEventListener('submit', async e => {
     e.preventDefault();
     if (!checkAdminPassword()) return;
