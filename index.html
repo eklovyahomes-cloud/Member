@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Colony Maintenance Manager</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    /* Full Screen Loader Overlay */
+    #spinnerOverlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.65);
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      color: #fff;
+    }
+
+    /* Toast Notification Top Right */
+    #successToast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 10000;
+      display: none;
+    }
+
+    @media print {
+      .no-print { display: none !important; }
+      .card { border: none !important; }
+    }
+  </style>
+</head>
+<body class="bg-light p-3">
+
+<!-- Full Screen Wait Spinner -->
+<div id="spinnerOverlay">
+  <div class="spinner-border text-light mb-3" style="width: 3.5rem; height: 3.5rem;" role="status">
+    <span class="visually-hidden">Loading...</span>
+  </div>
+  <h5 id="spinnerText" class="fw-bold">Kripya intezar karein, data process ho raha hai...</h5>
+</div>
+
+<!-- Success Alert Box -->
+<div id="successToast" class="alert alert-success alert-dismissible shadow-lg fade show" role="alert">
+  <span id="toastMessage">✅ <strong>Success!</strong> Data successfully save ho gaya!</span>
+  <button type="button" class="btn-close" onclick="document.getElementById('successToast').style.display='none'"></button>
+</div>
+
+<div class="container">
+  <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-2">
+    <h2>🏠 Colony Maintenance Manager</h2>
+    <div>
+      <button class="btn btn-outline-primary no-print me-2" onclick="fetchData(true)">🔄 Refresh</button>
+      <button class="btn btn-outline-dark no-print" onclick="window.print()">🖨️ Print Report</button>
+    </div>
+  </div>
+
+  <!-- Dashboard Overview -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-3">
+      <div class="card bg-dark text-white p-3 text-center shadow-sm">
+        <h6>Total Members</h6>
+        <h3 id="dashMembers">0</h3>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-success text-white p-3 text-center shadow-sm">
+        <h6>Total Collection</h6>
+        <h3 id="dashIncome">₹0</h3>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-danger text-white p-3 text-center shadow-sm">
+        <h6>Total Kharch</h6>
+        <h3 id="dashExpense">₹0</h3>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-primary text-white p-3 text-center shadow-sm">
+        <h6>Current Balance</h6>
+        <h3 id="dashBalance">₹0</h3>
+      </div>
+    </div>
+  </div>
+
+  <!-- Action Forms -->
+  <div class="row g-3 mb-4 no-print">
+    <!-- Member Form -->
+    <div class="col-md-4">
+      <div class="card p-3 shadow-sm h-100">
+        <h5 class="text-primary">➕ Naya Member Jodein</h5>
+        <form id="memberForm">
+          <input type="text" id="mFlat" class="form-control mb-2" placeholder="Flat/Makaan No (e.g. A-102)" required>
+          <input type="text" id="mName" class="form-control mb-2" placeholder="Member Ka Naam" required>
+          <input type="tel" id="mPhone" class="form-control mb-2" placeholder="Mobile Number" required>
+          <button type="submit" id="btnMember" class="btn btn-primary w-100">🔒 Member Save Karein</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Maintenance Collection Form -->
+    <div class="col-md-4">
+      <div class="card p-3 shadow-sm h-100">
+        <h5 class="text-success">💰 Paisa Jama Karein</h5>
+        <form id="incomeForm">
+          <select id="incMember" class="form-select mb-2" required>
+            <option value="">Member Chunein</option>
+          </select>
+          <input type="month" id="incMonth" class="form-control mb-2" required>
+          <input type="number" id="incAmount" class="form-control mb-2" placeholder="Rakam (₹)" required>
+          <button type="submit" id="btnIncome" class="btn btn-success w-100">🔒 Entry Save Karein</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Expense Form -->
+    <div class="col-md-4">
+      <div class="card p-3 shadow-sm h-100">
+        <h5 class="text-danger">🧾 Kharcha Darj Karein</h5>
+        <form id="expenseForm">
+          <input type="text" id="expDesc" class="form-control mb-2" placeholder="Kis cheez me kharch hua?" required>
+          <input type="date" id="expDate" class="form-control mb-2" required>
+          <input type="number" id="expAmount" class="form-control mb-2" placeholder="Kharch Rakam (₹)" required>
+          <button type="submit" id="btnExpense" class="btn btn-danger w-100">🔒 Kharch Save Karein</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tables Section -->
+  <div class="row g-3">
+    <!-- Member Directory Table -->
+    <div class="col-md-4">
+      <div class="card p-3 shadow-sm">
+        <h5>👥 Colony Members List</h5>
+        <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+          <table class="table table-sm table-hover">
+            <thead class="table-light">
+              <tr><th>Flat</th><th>Naam</th><th>Phone</th><th class="no-print">Action</th></tr>
+            </thead>
+            <tbody id="memberTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Collection History -->
+    <div class="col-md-4">
+      <div class="card p-3 shadow-sm">
+        <h5>📥 Aamadni Record</h5>
+        <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+          <table class="table table-sm table-hover">
+            <thead class="table-light">
+              <tr><th>Flat</th><th>Mahina</th><th>Rakam</th></tr>
+            </thead>
+            <tbody id="incomeTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Expense History -->
+    <div class="col-md-4">
+      <div class="card p-3 shadow-sm">
+        <h5>📤 Kharch Record</h5>
+        <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+          <table class="table table-sm table-hover">
+            <thead class="table-light">
+              <tr><th>Wajah</th><th>Tareekh</th><th>Rakam</th></tr>
+            </thead>
+            <tbody id="expenseTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby3qRboyYF__XMFVtDWgostAilvtHjA2WP1WWier-pUrUa-q1aCjAl81pBD8D6hqSdPKA/exec";
+  const ADMIN_PASSWORD = "eladmin";
+
+  let allMembers = [];
+
+  // Password verification helper
+  function checkAdminPassword() {
+    const pass = prompt("🔐 Kripya Admin Password darj karein:");
+    if (pass === null) {
+      return false; // User ne cancel kiya
+    }
+    if (pass === ADMIN_PASSWORD) {
+      return true;
+    } else {
+      alert("❌ Galat Password! Aapko entry karne ki anumati nahi hai.");
+      return false;
+    }
+  }
+
+  // Spinner show/hide functions
+  function showSpinner(message = "Kripya intezar karein, data process ho raha hai...") {
+    document.getElementById('spinnerText').innerText = message;
+    document.getElementById('spinnerOverlay').style.display = 'flex';
+  }
+
+  function hideSpinner() {
+    document.getElementById('spinnerOverlay').style.display = 'none';
+  }
+
+  // Toast Notification function
+  function showSuccess(msg) {
+    const toast = document.getElementById('successToast');
+    document.getElementById('toastMessage').innerHTML = `✅ <strong>Success!</strong> ${msg}`;
+    toast.style.display = 'block';
+    setTimeout(() => {
+      toast.style.display = 'none';
+    }, 3500);
+  }
+
+  async function fetchData(isManualRefresh = false) {
+    if (isManualRefresh) showSpinner("Data refresh ho raha hai...");
+    try {
+      const res = await fetch(SCRIPT_URL);
+      const data = await res.json();
+      allMembers = data.members || [];
+      renderUI(data);
+      if (isManualRefresh) showSuccess("Data taaza ho gaya hai!");
+    } catch (err) {
+      console.error(err);
+      alert("Data load karne me problem aayi! Internet connection check karein.");
+    } finally {
+      if (isManualRefresh) hideSpinner();
+    }
+  }
+
+  function renderUI(data) {
+    // 1. Member Dropdown & Member Table
+    const select = document.getElementById('incMember');
+    const memTable = document.getElementById('memberTable');
+    select.innerHTML = '<option value="">Member Chunein</option>';
+    memTable.innerHTML = '';
+
+    allMembers.forEach(m => {
+      select.innerHTML += `<option value="${m.flat}|${m.name}">${m.flat} - ${m.name}</option>`;
+      memTable.innerHTML += `
+        <tr>
+          <td><strong>${m.flat}</strong></td>
+          <td>${m.name}</td>
+          <td>${m.phone}</td>
+          <td class="no-print">
+            <button class="btn btn-sm btn-outline-danger py-0" title="Delete Member" onclick="deleteMember(${m.rowId})">✕</button>
+          </td>
+        </tr>`;
+    });
+
+    // 2. Income Table
+    let totalInc = 0;
+    const incTable = document.getElementById('incomeTable');
+    incTable.innerHTML = '';
+    (data.collections || []).forEach(c => {
+      totalInc += Number(c.amount || 0);
+      incTable.innerHTML += `<tr><td>${c.flat}</td><td>${c.month}</td><td>₹${c.amount}</td></tr>`;
+    });
+
+    // 3. Expense Table
+    let totalExp = 0;
+    const expTable = document.getElementById('expenseTable');
+    expTable.innerHTML = '';
+    (data.expenses || []).forEach(e => {
+      totalExp += Number(e.amount || 0);
+      let d = e.date ? new Date(e.date).toLocaleDateString() : '';
+      expTable.innerHTML += `<tr><td>${e.desc}</td><td>${d}</td><td>₹${e.amount}</td></tr>`;
+    });
+
+    // 4. Update Summary Cards
+    document.getElementById('dashMembers').innerText = allMembers.length;
+    document.getElementById('dashIncome').innerText = `₹${totalInc}`;
+    document.getElementById('dashExpense').innerText = `₹${totalExp}`;
+    document.getElementById('dashBalance').innerText = `₹${totalInc - totalExp}`;
+  }
+
+  async function sendData(payload, successMsg) {
+    showSpinner("Google Sheet me entry save ho rahi hai...");
+    try {
+      await fetch(SCRIPT_URL, {
+        method: "POST",
+        body: JSON.stringify(payload)
+      });
+      await fetchData(); // Latest data refresh karo
+      showSuccess(successMsg);
+    } catch (err) {
+      console.error(err);
+      alert("Entry save karne me problem aayi!");
+    } finally {
+      hideSpinner();
+    }
+  }
+
+  // Member Submit (Protected)
+  document.getElementById('memberForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    if (!checkAdminPassword()) return;
+
+    await sendData({
+      type: "member",
+      flat: document.getElementById('mFlat').value,
+      name: document.getElementById('mName').value,
+      phone: document.getElementById('mPhone').value
+    }, "Naya member safaltapoorvak jod diya gaya!");
+    e.target.reset();
+  });
+
+  // Delete Member (Protected)
+  async function deleteMember(rowId) {
+    if (!checkAdminPassword()) return;
+
+    if (confirm("Kya aap sach me is member ko hatana chahte hain?")) {
+      await sendData({ type: "delete_member", rowId: rowId }, "Member ko hata diya gaya!");
+    }
+  }
+
+  // Income Submit (Protected)
+  document.getElementById('incomeForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    if (!checkAdminPassword()) return;
+
+    const parts = document.getElementById('incMember').value.split('|');
+    await sendData({
+      type: "collection",
+      flat: parts[0],
+      name: parts[1],
+      month: document.getElementById('incMonth').value,
+      amount: document.getElementById('incAmount').value
+    }, "Maintenance entry safaltapoorvak darj ho gayi!");
+    e.target.reset();
+  });
+
+  // Expense Submit (Protected)
+  document.getElementById('expenseForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    if (!checkAdminPassword()) return;
+
+    await sendData({
+      type: "expense",
+      desc: document.getElementById('expDesc').value,
+      date: document.getElementById('expDate').value,
+      amount: document.getElementById('expAmount').value
+    }, "Kharch safaltapoorvak darj ho gaya!");
+    e.target.reset();
+  });
+
+  // Initial Data Load
+  showSpinner("Data load ho raha hai, kripya intezar karein...");
+  fetchData().then(() => hideSpinner());
+</script>
+</body>
+</html>
