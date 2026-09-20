@@ -4,6 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Colony Maintenance Manager</title>
+
+  <!-- PWA & Web App Meta Tags -->
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#0d6efd">
+  <link rel="icon" type="image/png" href="./icon-512.png">
+  <link rel="apple-touch-icon" href="./icon-512.png">
+
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
     /* Full Screen Loader Overlay */
@@ -55,10 +62,15 @@
 
 <div class="container">
   <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-2">
-    <h2>🏠 Colony Maintenance Manager</h2>
-    <div>
-      <button class="btn btn-outline-primary no-print me-2" onclick="fetchData(true)">🔄 Refresh</button>
-      <button class="btn btn-outline-dark no-print" onclick="window.print()">🖨️ Print Report</button>
+    <div class="d-flex align-items-center">
+      <img src="./icon-512.png" alt="Logo" width="40" height="40" class="rounded me-2 border" onerror="this.style.display='none'">
+      <h3 class="mb-0">🏠 Colony Maintenance</h3>
+    </div>
+    <div class="no-print d-flex gap-2">
+      <!-- App Install Button -->
+      <button id="btnInstall" class="btn btn-warning shadow-sm" style="display: none;">📲 App Install Karein</button>
+      <button class="btn btn-outline-primary" onclick="fetchData(true)">🔄 Refresh</button>
+      <button class="btn btn-outline-dark" onclick="window.print()">🖨️ Print Report</button>
     </div>
   </div>
 
@@ -100,7 +112,7 @@
           <input type="text" id="mFlat" class="form-control mb-2" placeholder="Flat/Makaan No (e.g. A-102)" required>
           <input type="text" id="mName" class="form-control mb-2" placeholder="Member Ka Naam" required>
           <input type="tel" id="mPhone" class="form-control mb-2" placeholder="Mobile Number" required>
-          <button type="submit" id="btnMember" class="btn btn-primary w-100">🔒 Member Save Karein</button>
+          <button type="submit" class="btn btn-primary w-100">🔒 Member Save Karein</button>
         </form>
       </div>
     </div>
@@ -115,7 +127,7 @@
           </select>
           <input type="month" id="incMonth" class="form-control mb-2" required>
           <input type="number" id="incAmount" class="form-control mb-2" placeholder="Rakam (₹)" required>
-          <button type="submit" id="btnIncome" class="btn btn-success w-100">🔒 Entry Save Karein</button>
+          <button type="submit" class="btn btn-success w-100">🔒 Entry Save Karein</button>
         </form>
       </div>
     </div>
@@ -128,7 +140,7 @@
           <input type="text" id="expDesc" class="form-control mb-2" placeholder="Kis cheez me kharch hua?" required>
           <input type="date" id="expDate" class="form-control mb-2" required>
           <input type="number" id="expAmount" class="form-control mb-2" placeholder="Kharch Rakam (₹)" required>
-          <button type="submit" id="btnExpense" class="btn btn-danger w-100">🔒 Kharch Save Karein</button>
+          <button type="submit" class="btn btn-danger w-100">🔒 Kharch Save Karein</button>
         </form>
       </div>
     </div>
@@ -188,19 +200,40 @@
   const ADMIN_PASSWORD = "eladmin";
 
   let allMembers = [];
+  let deferredPrompt;
+
+  // --- PWA Installation Logic ---
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js')
+      .then(() => console.log('Service Worker Registered'))
+      .catch(err => console.log('SW Registration Failed', err));
+  }
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    const installBtn = document.getElementById('btnInstall');
+    if (installBtn) installBtn.style.display = 'block';
+  });
+
+  document.getElementById('btnInstall').addEventListener('click', async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        document.getElementById('btnInstall').style.display = 'none';
+      }
+      deferredPrompt = null;
+    }
+  });
 
   // Password verification helper
   function checkAdminPassword() {
     const pass = prompt("🔐 Kripya Admin Password darj karein:");
-    if (pass === null) {
-      return false; // User ne cancel kiya
-    }
-    if (pass === ADMIN_PASSWORD) {
-      return true;
-    } else {
-      alert("❌ Galat Password! Aapko entry karne ki anumati nahi hai.");
-      return false;
-    }
+    if (pass === null) return false;
+    if (pass === ADMIN_PASSWORD) return true;
+    alert("❌ Galat Password! Aapko entry karne ki anumati nahi hai.");
+    return false;
   }
 
   // Spinner show/hide functions
@@ -218,9 +251,7 @@
     const toast = document.getElementById('successToast');
     document.getElementById('toastMessage').innerHTML = `✅ <strong>Success!</strong> ${msg}`;
     toast.style.display = 'block';
-    setTimeout(() => {
-      toast.style.display = 'none';
-    }, 3500);
+    setTimeout(() => { toast.style.display = 'none'; }, 3500);
   }
 
   async function fetchData(isManualRefresh = false) {
@@ -233,14 +264,13 @@
       if (isManualRefresh) showSuccess("Data taaza ho gaya hai!");
     } catch (err) {
       console.error(err);
-      alert("Data load karne me problem aayi! Internet connection check karein.");
+      alert("Data load karne me problem aayi! Internet check karein.");
     } finally {
       if (isManualRefresh) hideSpinner();
     }
   }
 
   function renderUI(data) {
-    // 1. Member Dropdown & Member Table
     const select = document.getElementById('incMember');
     const memTable = document.getElementById('memberTable');
     select.innerHTML = '<option value="">Member Chunein</option>';
@@ -259,7 +289,6 @@
         </tr>`;
     });
 
-    // 2. Income Table
     let totalInc = 0;
     const incTable = document.getElementById('incomeTable');
     incTable.innerHTML = '';
@@ -268,7 +297,6 @@
       incTable.innerHTML += `<tr><td>${c.flat}</td><td>${c.month}</td><td>₹${c.amount}</td></tr>`;
     });
 
-    // 3. Expense Table
     let totalExp = 0;
     const expTable = document.getElementById('expenseTable');
     expTable.innerHTML = '';
@@ -278,7 +306,6 @@
       expTable.innerHTML += `<tr><td>${e.desc}</td><td>${d}</td><td>₹${e.amount}</td></tr>`;
     });
 
-    // 4. Update Summary Cards
     document.getElementById('dashMembers').innerText = allMembers.length;
     document.getElementById('dashIncome').innerText = `₹${totalInc}`;
     document.getElementById('dashExpense').innerText = `₹${totalExp}`;
@@ -292,7 +319,7 @@
         method: "POST",
         body: JSON.stringify(payload)
       });
-      await fetchData(); // Latest data refresh karo
+      await fetchData();
       showSuccess(successMsg);
     } catch (err) {
       console.error(err);
@@ -302,7 +329,7 @@
     }
   }
 
-  // Member Submit (Protected)
+  // Member Submit
   document.getElementById('memberForm').addEventListener('submit', async e => {
     e.preventDefault();
     if (!checkAdminPassword()) return;
@@ -312,20 +339,19 @@
       flat: document.getElementById('mFlat').value,
       name: document.getElementById('mName').value,
       phone: document.getElementById('mPhone').value
-    }, "Naya member safaltapoorvak jod diya gaya!");
+    }, "Naya member jod diya gaya!");
     e.target.reset();
   });
 
-  // Delete Member (Protected)
+  // Delete Member
   async function deleteMember(rowId) {
     if (!checkAdminPassword()) return;
-
     if (confirm("Kya aap sach me is member ko hatana chahte hain?")) {
       await sendData({ type: "delete_member", rowId: rowId }, "Member ko hata diya gaya!");
     }
   }
 
-  // Income Submit (Protected)
+  // Income Submit
   document.getElementById('incomeForm').addEventListener('submit', async e => {
     e.preventDefault();
     if (!checkAdminPassword()) return;
@@ -341,7 +367,7 @@
     e.target.reset();
   });
 
-  // Expense Submit (Protected)
+  // Expense Submit
   document.getElementById('expenseForm').addEventListener('submit', async e => {
     e.preventDefault();
     if (!checkAdminPassword()) return;
@@ -355,7 +381,7 @@
     e.target.reset();
   });
 
-  // Initial Data Load
+  // Initial Load
   showSpinner("Data load ho raha hai, kripya intezar karein...");
   fetchData().then(() => hideSpinner());
 </script>
