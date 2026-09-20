@@ -45,6 +45,16 @@
       border-radius: 8px;
     }
 
+    /* Clickable Card Hover Effect */
+    .clickable-card {
+      cursor: pointer;
+      transition: transform 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    }
+    .clickable-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 16px rgba(0,0,0,0.2) !important;
+    }
+
     @media print {
       .no-print { display: none !important; }
       .card { border: none !important; }
@@ -68,44 +78,63 @@
 </div>
 
 <div class="container">
-  <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-2">
+  <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2 flex-wrap gap-2">
     <div class="d-flex align-items-center gap-2">
-      <!-- Direct Online HD Building Icon -->
       <img src="https://cdn-icons-png.flaticon.com/512/1018/1018525.png" alt="Colony Logo" class="app-brand-icon shadow-sm">
       <h3 class="mb-0 fw-bold">Colony Maintenance</h3>
     </div>
-    <div class="no-print d-flex gap-2">
-      <!-- App Install Button -->
-      <button id="btnInstall" class="btn btn-warning shadow-sm" style="display: none;">📲 App Install Karein</button>
-      <button class="btn btn-outline-primary" onclick="fetchData(true)">🔄 Refresh</button>
-      <button class="btn btn-outline-dark" onclick="window.print()">🖨️ Print Report</button>
+    <div class="no-print d-flex align-items-center gap-2 flex-wrap">
+      <!-- Month Filter -->
+      <div class="d-flex align-items-center bg-white px-2 py-1 rounded border shadow-sm">
+        <label for="filterMonth" class="me-2 fw-bold text-secondary mb-0 small">Mahina:</label>
+        <input type="month" id="filterMonth" class="form-control form-control-sm border-0" onchange="renderStatusCards()">
+      </div>
+      <button id="btnInstall" class="btn btn-warning btn-sm shadow-sm" style="display: none;">📲 Install</button>
+      <button class="btn btn-outline-primary btn-sm" onclick="fetchData(true)">🔄 Refresh</button>
+      <button class="btn btn-outline-dark btn-sm" onclick="window.print()">🖨️ Print</button>
     </div>
   </div>
 
-  <!-- Dashboard Overview -->
+  <!-- Dashboard Overview Cards -->
   <div class="row g-3 mb-4">
-    <div class="col-md-3">
-      <div class="card bg-dark text-white p-3 text-center shadow-sm">
-        <h6>Total Members</h6>
-        <h3 id="dashMembers">0</h3>
+    <div class="col-6 col-md-2">
+      <div class="card bg-dark text-white p-3 text-center shadow-sm h-100">
+        <h6 class="small">Total Members</h6>
+        <h3 id="dashMembers" class="mb-0">0</h3>
       </div>
     </div>
-    <div class="col-md-3">
-      <div class="card bg-success text-white p-3 text-center shadow-sm">
-        <h6>Total Collection</h6>
-        <h3 id="dashIncome">₹0</h3>
+    <!-- Paid Members (Clickable) -->
+    <div class="col-6 col-md-2">
+      <div class="card bg-success text-white p-3 text-center shadow-sm clickable-card h-100" onclick="showMemberModal('paid')">
+        <h6 class="small">Paid Members 👆</h6>
+        <h3 id="dashPaidCount" class="mb-0">0</h3>
+        <small class="text-white-50" style="font-size: 11px;">Tap karke list dekhein</small>
       </div>
     </div>
-    <div class="col-md-3">
-      <div class="card bg-danger text-white p-3 text-center shadow-sm">
-        <h6>Total Kharch</h6>
-        <h3 id="dashExpense">₹0</h3>
+    <!-- Unpaid Members (Clickable) -->
+    <div class="col-6 col-md-2">
+      <div class="card bg-danger text-white p-3 text-center shadow-sm clickable-card h-100" onclick="showMemberModal('unpaid')">
+        <h6 class="small">Unpaid Members 👆</h6>
+        <h3 id="dashUnpaidCount" class="mb-0">0</h3>
+        <small class="text-white-50" style="font-size: 11px;">Tap karke list dekhein</small>
       </div>
     </div>
-    <div class="col-md-3">
-      <div class="card bg-primary text-white p-3 text-center shadow-sm">
-        <h6>Current Balance</h6>
-        <h3 id="dashBalance">₹0</h3>
+    <div class="col-6 col-md-2">
+      <div class="card bg-secondary text-white p-3 text-center shadow-sm h-100">
+        <h6 class="small">Total Collection</h6>
+        <h4 id="dashIncome" class="mb-0">₹0</h4>
+      </div>
+    </div>
+    <div class="col-6 col-md-2">
+      <div class="card bg-warning text-dark p-3 text-center shadow-sm h-100">
+        <h6 class="small">Total Kharch</h6>
+        <h4 id="dashExpense" class="mb-0">₹0</h4>
+      </div>
+    </div>
+    <div class="col-6 col-md-2">
+      <div class="card bg-primary text-white p-3 text-center shadow-sm h-100">
+        <h6 class="small">Current Balance</h6>
+        <h4 id="dashBalance" class="mb-0">₹0</h4>
       </div>
     </div>
   </div>
@@ -117,7 +146,7 @@
       <div class="card p-3 shadow-sm h-100">
         <h5 class="text-primary">➕ Naya Member Jodein</h5>
         <form id="memberForm">
-          <input type="text" id="mFlat" class="form-control mb-2" placeholder="Flat/Makaan No (e.g. A-102)" required>
+          <input type="text" id="mFlat" class="form-control mb-2" placeholder="ID / Flat No (e.g. K101)" required>
           <input type="text" id="mName" class="form-control mb-2" placeholder="Member Ka Naam" required>
           <input type="tel" id="mPhone" class="form-control mb-2" placeholder="Mobile Number" required>
           <button type="submit" class="btn btn-primary w-100">🔒 Member Save Karein</button>
@@ -163,7 +192,7 @@
         <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
           <table class="table table-sm table-hover">
             <thead class="table-light">
-              <tr><th>Flat</th><th>Naam</th><th>Phone</th><th class="no-print">Action</th></tr>
+              <tr><th>ID</th><th>Naam</th><th>Phone</th><th class="no-print">Action</th></tr>
             </thead>
             <tbody id="memberTable"></tbody>
           </table>
@@ -178,7 +207,7 @@
         <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
           <table class="table table-sm table-hover">
             <thead class="table-light">
-              <tr><th>Flat</th><th>Mahina</th><th>Rakam</th></tr>
+              <tr><th>ID</th><th>Mahina</th><th>Rakam</th></tr>
             </thead>
             <tbody id="incomeTable"></tbody>
           </table>
@@ -203,12 +232,61 @@
   </div>
 </div>
 
+<!-- Modal for Paid / Unpaid Members List with Share Features -->
+<div class="modal fade" id="memberListModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header" id="modalHeaderBg">
+        <h5 class="modal-title fw-bold text-white" id="modalTitle">Members List</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-0">
+        <div class="p-2 bg-light border-bottom text-muted small" id="modalSubtitle"></div>
+        <div class="table-responsive">
+          <table class="table table-striped table-hover mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>ID</th>
+                <th>Naam</th>
+                <th id="modalDynamicCol">Details</th>
+              </tr>
+            </thead>
+            <tbody id="modalTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer d-flex justify-content-between align-items-center">
+        <div class="d-flex gap-2">
+          <!-- WhatsApp Share & Copy Buttons -->
+          <button type="button" class="btn btn-success btn-sm shadow-sm" onclick="shareOnWhatsApp()">
+            📲 WhatsApp Par Share Karein
+          </button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" onclick="copyMemberList()">
+            📋 Copy List
+          </button>
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
   const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby3qRboyYF__XMFVtDWgostAilvtHjA2WP1WWier-pUrUa-q1aCjAl81pBD8D6hqSdPKA/exec";
   const ADMIN_PASSWORD = "eladmin";
 
+  let rawData = { members: [], collections: [], expenses: [] };
   let allMembers = [];
   let deferredPrompt;
+  let memberModalInstance;
+  let currentModalType = 'paid'; // Current modal state
+
+  // Set Default Month (2026-09)
+  const now = new Date();
+  const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  document.getElementById('filterMonth').value = currentMonthStr;
+  document.getElementById('incMonth').value = currentMonthStr;
 
   // --- PWA Installation Logic ---
   if ('serviceWorker' in navigator) {
@@ -266,9 +344,16 @@
     if (isManualRefresh) showSpinner("Data refresh ho raha hai...");
     try {
       const res = await fetch(SCRIPT_URL);
-      const data = await res.json();
-      allMembers = data.members || [];
-      renderUI(data);
+      rawData = await res.json();
+      
+      allMembers = (rawData.members || []).map((m, i) => ({
+        rowId: m.rowId || (i + 2),
+        id: String(m.id || m.flat || m.ID || "").trim(),
+        name: String(m.name || m.Name || "").trim(),
+        phone: String(m.phone || m.Mobileno || m.mobile || "").trim()
+      }));
+
+      renderUI(rawData);
       if (isManualRefresh) showSuccess("Data taaza ho gaya hai!");
     } catch (err) {
       console.error(err);
@@ -278,46 +363,253 @@
     }
   }
 
+  // Month Parser with Timezone Fix
+  function parseToYYYYMM(val) {
+    if (!val) return "";
+    let str = String(val).trim();
+
+    // 1. Agar UTC Timestamp hai
+    if (str.includes('T') && str.endsWith('Z')) {
+      const d = new Date(str);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    }
+
+    // 2. Agar direct text me DD/MM/YYYY ya DD-MM-YYYY hai
+    const matchSlash = str.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+    if (matchSlash) {
+      return `${matchSlash[3]}-${String(matchSlash[2]).padStart(2, '0')}`;
+    }
+
+    // 3. Agar plain YYYY-MM hai
+    const matchISO = str.match(/^(\d{4})-(\d{2})/);
+    if (matchISO) {
+      return `${matchISO[1]}-${matchISO[2]}`;
+    }
+
+    // 4. Default Date parse
+    try {
+      const d = new Date(str);
+      if (!isNaN(d.getTime())) {
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      }
+    } catch(e) {}
+
+    return str;
+  }
+
+  // Calculate Paid vs Unpaid for selected month
+  function getMonthStatus(selectedMonth) {
+    const paidList = [];
+    const unpaidList = [];
+    const targetMonth = parseToYYYYMM(selectedMonth);
+
+    const paidById = {};
+    const paidByName = {};
+
+    (rawData.collections || []).forEach(c => {
+      const cMonth = parseToYYYYMM(c.month || c.Month || c.date || c.Date);
+      
+      if (cMonth === targetMonth) {
+        const idVal = String(c.id || c.flat || c.ID || "").replace(/\s+/g, "").toLowerCase();
+        const nameVal = String(c.name || c.Name || "").replace(/\s+/g, "").toLowerCase();
+        const amt = Number(c.amount || c.Amount || 0);
+
+        if (idVal) paidById[idVal] = (paidById[idVal] || 0) + amt;
+        if (nameVal) paidByName[nameVal] = (paidByName[nameVal] || 0) + amt;
+      }
+    });
+
+    allMembers.forEach(m => {
+      const idKey = String(m.id).replace(/\s+/g, "").toLowerCase();
+      const nameKey = String(m.name).replace(/\s+/g, "").toLowerCase();
+
+      const paidAmount = paidById[idKey] || paidByName[nameKey];
+
+      if (paidAmount !== undefined && paidAmount > 0) {
+        paidList.push({ ...m, paidAmount: paidAmount });
+      } else {
+        unpaidList.push(m);
+      }
+    });
+
+    return { paidList, unpaidList };
+  }
+
+  function renderStatusCards() {
+    const selectedMonth = document.getElementById('filterMonth').value;
+    const { paidList, unpaidList } = getMonthStatus(selectedMonth);
+
+    document.getElementById('dashPaidCount').innerText = paidList.length;
+    document.getElementById('dashUnpaidCount').innerText = unpaidList.length;
+  }
+
   function renderUI(data) {
+    // 1. Member Dropdown & Member Table
     const select = document.getElementById('incMember');
     const memTable = document.getElementById('memberTable');
     select.innerHTML = '<option value="">Member Chunein</option>';
     memTable.innerHTML = '';
 
     allMembers.forEach(m => {
-      select.innerHTML += `<option value="${m.flat}|${m.name}">${m.flat} - ${m.name}</option>`;
+      select.innerHTML += `<option value="${m.id}|${m.name}">${m.id} - ${m.name}</option>`;
       memTable.innerHTML += `
         <tr>
-          <td><strong>${m.flat}</strong></td>
+          <td><strong>${m.id}</strong></td>
           <td>${m.name}</td>
-          <td>${m.phone}</td>
+          <td>${m.phone ? `<a href="tel:${m.phone}" class="text-decoration-none">${m.phone}</a>` : '-'}</td>
           <td class="no-print">
             <button class="btn btn-sm btn-outline-danger py-0" title="Delete Member" onclick="deleteMember(${m.rowId})">✕</button>
           </td>
         </tr>`;
     });
 
+    // 2. Income Table
     let totalInc = 0;
     const incTable = document.getElementById('incomeTable');
     incTable.innerHTML = '';
     (data.collections || []).forEach(c => {
-      totalInc += Number(c.amount || 0);
-      incTable.innerHTML += `<tr><td>${c.flat}</td><td>${c.month}</td><td>₹${c.amount}</td></tr>`;
+      const amt = Number(c.amount || c.Amount || 0);
+      totalInc += amt;
+      const cId = c.id || c.flat || c.ID || "";
+      const cM = parseToYYYYMM(c.month || c.Month);
+      incTable.innerHTML += `<tr><td>${cId}</td><td>${cM}</td><td>₹${amt}</td></tr>`;
     });
 
+    // 3. Expense Table
     let totalExp = 0;
     const expTable = document.getElementById('expenseTable');
     expTable.innerHTML = '';
     (data.expenses || []).forEach(e => {
-      totalExp += Number(e.amount || 0);
-      let d = e.date ? new Date(e.date).toLocaleDateString() : '';
-      expTable.innerHTML += `<tr><td>${e.desc}</td><td>${d}</td><td>₹${e.amount}</td></tr>`;
+      const amt = Number(e.amount || e.Amount || 0);
+      totalExp += amt;
+      const d = e.date ? new Date(e.date).toLocaleDateString() : '';
+      expTable.innerHTML += `<tr><td>${e.desc || e.Desc}</td><td>${d}</td><td>₹${amt}</td></tr>`;
     });
 
+    // Totals
     document.getElementById('dashMembers').innerText = allMembers.length;
     document.getElementById('dashIncome').innerText = `₹${totalInc}`;
     document.getElementById('dashExpense').innerText = `₹${totalExp}`;
     document.getElementById('dashBalance').innerText = `₹${totalInc - totalExp}`;
+
+    renderStatusCards();
+  }
+
+  // Tap handler to open Modal for Paid or Unpaid Members
+  function showMemberModal(type) {
+    currentModalType = type;
+    const selectedMonth = document.getElementById('filterMonth').value;
+    const { paidList, unpaidList } = getMonthStatus(selectedMonth);
+
+    const modalTitle = document.getElementById('modalTitle');
+    const modalSubtitle = document.getElementById('modalSubtitle');
+    const modalHeaderBg = document.getElementById('modalHeaderBg');
+    const modalTableBody = document.getElementById('modalTableBody');
+    const modalDynamicCol = document.getElementById('modalDynamicCol');
+
+    modalTableBody.innerHTML = '';
+
+    if (type === 'paid') {
+      modalHeaderBg.className = 'modal-header bg-success';
+      modalTitle.innerText = `✅ Paid Members (${paidList.length})`;
+      modalSubtitle.innerText = `Mahina: ${selectedMonth} | In sabhi members ka payment prapt ho chuka hai.`;
+      modalDynamicCol.innerText = "Paid Amount";
+
+      if (paidList.length === 0) {
+        modalTableBody.innerHTML = `<tr><td colspan="3" class="text-center text-muted p-3">Is mahine kisi ne payment nahi kiya hai.</td></tr>`;
+      } else {
+        paidList.forEach(m => {
+          modalTableBody.innerHTML += `
+            <tr>
+              <td><strong>${m.id}</strong></td>
+              <td>${m.name}</td>
+              <td><span class="badge bg-success fs-6">₹${m.paidAmount}</span></td>
+            </tr>`;
+        });
+      }
+    } else {
+      modalHeaderBg.className = 'modal-header bg-danger';
+      modalTitle.innerText = `❌ Unpaid Members (${unpaidList.length})`;
+      modalSubtitle.innerText = `Mahina: ${selectedMonth} | In sabhi members ka payment abhi baki hai.`;
+      modalDynamicCol.innerText = "Contact";
+
+      if (unpaidList.length === 0) {
+        modalTableBody.innerHTML = `<tr><td colspan="3" class="text-center text-success p-3">🎉 Sabhi members ne is mahine ka payment kar diya hai!</td></tr>`;
+      } else {
+        unpaidList.forEach(m => {
+          modalTableBody.innerHTML += `
+            <tr>
+              <td><strong class="text-danger">${m.id}</strong></td>
+              <td>${m.name}</td>
+              <td>
+                ${m.phone ? `<a href="tel:${m.phone}" class="btn btn-sm btn-outline-primary py-0">📞 ${m.phone}</a>` : '<span class="text-muted small">No phone</span>'}
+              </td>
+            </tr>`;
+        });
+      }
+    }
+
+    if (!memberModalInstance) {
+      memberModalInstance = new bootstrap.Modal(document.getElementById('memberListModal'));
+    }
+    memberModalInstance.show();
+  }
+
+  // Generate Message Text for WhatsApp & Copy
+  function generateShareText() {
+    const selectedMonth = document.getElementById('filterMonth').value;
+    const { paidList, unpaidList } = getMonthStatus(selectedMonth);
+
+    let text = "";
+
+    if (currentModalType === 'paid') {
+      text += `🏢 *COLONY MAINTENANCE - PAID LIST*\n`;
+      text += `📅 *Mahina:* ${selectedMonth}\n`;
+      text += `✅ *Kul Jama Log (Paid):* ${paidList.length}\n`;
+      text += `------------------------------------\n`;
+
+      if (paidList.length === 0) {
+        text += `Is mahine koi payment record nahi hai.\n`;
+      } else {
+        paidList.forEach((m, idx) => {
+          text += `${idx + 1}. *${m.id}* - ${m.name} (₹${m.paidAmount})\n`;
+        });
+      }
+      text += `------------------------------------\n🙏 Sabhi sahyogiyo ka dhanyawad!`;
+    } else {
+      text += `⚠️ *COLONY MAINTENANCE - UNPAID REMINDER*\n`;
+      text += `📅 *Mahina:* ${selectedMonth}\n`;
+      text += `❌ *Bakaya Log (Unpaid):* ${unpaidList.length}\n`;
+      text += `------------------------------------\n`;
+
+      if (unpaidList.length === 0) {
+        text += `🎉 Sabhi members ne payment clear kar diya hai!\n`;
+      } else {
+        unpaidList.forEach((m, idx) => {
+          text += `${idx + 1}. *${m.id}* - ${m.name}\n`;
+        });
+      }
+      text += `------------------------------------\n📢 Kripya apna maintenance shulk jald se jald jama karein.`;
+    }
+
+    return text;
+  }
+
+  // WhatsApp Share Trigger
+  function shareOnWhatsApp() {
+    const message = generateShareText();
+    const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+  }
+
+  // Copy List to Clipboard
+  function copyMemberList() {
+    const message = generateShareText();
+    navigator.clipboard.writeText(message).then(() => {
+      showSuccess("List clipboard par copy ho gayi hai!");
+    }).catch(() => {
+      alert("Copy karne me dikkat aayi!");
+    });
   }
 
   async function sendData(payload, successMsg) {
