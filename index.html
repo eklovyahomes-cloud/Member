@@ -58,6 +58,33 @@
       box-shadow: 0 8px 16px rgba(0,0,0,0.2) !important;
     }
 
+    /* Committee Member Avatar Style */
+    .committee-avatar {
+      width: 65px;
+      height: 65px;
+      object-fit: cover;
+      border-radius: 50%;
+      border: 2px solid #0d6efd;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+    }
+
+    /* Auto Horizontal Slider Styling */
+    .auto-slider-container {
+      display: flex;
+      overflow-x: auto;
+      scroll-behavior: smooth;
+      gap: 12px;
+      padding-bottom: 5px;
+      scrollbar-width: none; /* Firefox */
+    }
+    .auto-slider-container::-webkit-scrollbar {
+      display: none; /* Chrome, Safari, Opera */
+    }
+    .slider-item {
+      min-width: 130px;
+      flex: 0 0 auto;
+    }
+
     @media print {
       .no-print { display: none !important; }
       .card { border: none !important; }
@@ -93,6 +120,45 @@
       <button id="btnInstall" class="btn btn-warning btn-sm shadow-sm" style="display: none;">📲 Install</button>
       <button class="btn btn-outline-primary btn-sm" onclick="fetchData(true)">🔄 Refresh</button>
       <button class="btn btn-outline-dark btn-sm" onclick="window.print()">🖨️ Print</button>
+    </div>
+  </div>
+
+  <!-- Committee Members Section (Auto Horizontal Slider) -->
+  <div class="card p-3 mb-4 shadow-sm bg-white">
+    <h5 class="text-center mb-3 fw-bold text-primary">Eklavya Homes Colony Management Committee</h5>
+    <div class="auto-slider-container" id="committeeSlider">
+      <!-- 1. अध्यक्ष -->
+      <div class="slider-item">
+        <div class="p-2 border rounded bg-light text-center h-100 d-flex flex-column align-items-center justify-content-between">
+          <img src="https://raw.githubusercontent.com/eklovyahomes-cloud/Member/main/1.png" alt="अध्यक्ष" class="committee-avatar mb-1">
+          <div style="font-size: 11px;" class="fw-bold text-truncate w-100">संदीप कुमार साहू</div>
+          <span class="badge bg-primary" style="font-size: 9px;">अध्यक्ष</span>
+        </div>
+      </div>
+      <!-- 2. उपाध्यक्ष -->
+      <div class="slider-item">
+        <div class="p-2 border rounded bg-light text-center h-100 d-flex flex-column align-items-center justify-content-between">
+          <img src="https://raw.githubusercontent.com/eklovyahomes-cloud/Member/main/4.png" alt="उपाध्यक्ष" class="committee-avatar mb-1">
+          <div style="font-size: 11px;" class="fw-bold text-truncate w-100">रविशंकर निर्मलकर</div>
+          <span class="badge bg-info text-dark" style="font-size: 9px;">उपाध्यक्ष</span>
+        </div>
+      </div>
+      <!-- 3. कोषाध्यक्ष -->
+      <div class="slider-item">
+        <div class="p-2 border rounded bg-light text-center h-100 d-flex flex-column align-items-center justify-content-between">
+          <img src="https://raw.githubusercontent.com/eklovyahomes-cloud/Member/main/2.png" alt="कोषाध्यक्ष" class="committee-avatar mb-1">
+          <div style="font-size: 11px;" class="fw-bold text-truncate w-100">पंकज कुमार साहू</div>
+          <span class="badge bg-success" style="font-size: 9px;">कोषाध्यक्ष</span>
+        </div>
+      </div>
+      <!-- 4. सचिव -->
+      <div class="slider-item">
+        <div class="p-2 border rounded bg-light text-center h-100 d-flex flex-column align-items-center justify-content-between">
+          <img src="https://raw.githubusercontent.com/eklovyahomes-cloud/Member/main/3.png" alt="सचिव" class="committee-avatar mb-1">
+          <div style="font-size: 11px;" class="fw-bold text-truncate w-100">कमलेश कुमार साहू</div>
+          <span class="badge bg-warning text-dark" style="font-size: 9px;">सचिव</span>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -939,6 +1005,20 @@
       fetchData();
     }
     hideSpinner();
+  });
+
+  // Automatic Horizontal Slider Script
+  window.addEventListener('DOMContentLoaded', () => {
+    const slider = document.getElementById('committeeSlider');
+    if (slider) {
+      setInterval(() => {
+        if (slider.scrollLeft + slider.clientWidth >= slider.scrollWidth) {
+          slider.scrollTo({ left: 0, behavior: 'smooth' });
+        } else {
+          slider.scrollBy({ left: 140, behavior: 'smooth' });
+        }
+      }, 3000); // Har 3 seconds me automatic slide hoga
+    }
   });
 
   // Initial Load
