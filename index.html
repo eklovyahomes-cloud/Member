@@ -444,21 +444,21 @@
     renderFilteredViews();
   }
 
-  // Super-Fast PostgreSQL Fetch
+  // Super-Fast PostgreSQL Fetch with Proper Ascending Sorting
   async function fetchData(isManualRefresh = false) {
     if (isManualRefresh) showSpinner("Data refresh ho raha hai...");
     try {
       const [resMembers, resCollections, resExpenses] = await Promise.all([
-        db.from('members').select('*').order('id', { ascending: true }),
-        db.from('collections').select('*').order('created_at', { ascending: false }),
-        db.from('expenses').select('*').order('expense_date', { ascending: false })
+        db.from('members').select('*'),
+        db.from('collections').select('*'),
+        db.from('expenses').select('*')
       ]);
 
       if (resMembers.error) throw resMembers.error;
       if (resCollections.error) throw resCollections.error;
       if (resExpenses.error) throw resExpenses.error;
 
-      // Unique member mapping
+      // Unique member mapping & sorting by ID (Ascending Order)
       const uniqueMemMap = new Map();
       (resMembers.data || []).forEach(m => {
         const id = String(m.id || "").trim();
@@ -470,8 +470,11 @@
           });
         }
       });
-      allMembers = Array.from(uniqueMemMap.values());
+      allMembers = Array.from(uniqueMemMap.values()).sort((a, b) => {
+        return a.id.localeCompare(b.id, undefined, { numeric: true, sensitivity: 'base' });
+      });
 
+      // Collections sorted by member_id ascending (then creation)
       allCollections = (resCollections.data || []).map(c => ({
         id: c.id,
         member_id: String(c.member_id || "").trim(),
@@ -479,14 +482,19 @@
         month: String(c.month || "").trim(),
         category: String(c.category || "Maintenance").trim(),
         amount: Number(c.amount || 0)
-      }));
+      })).sort((a, b) => {
+        return a.member_id.localeCompare(b.member_id, undefined, { numeric: true, sensitivity: 'base' });
+      });
 
+      // Expenses sorted by date ascending
       allExpenses = (resExpenses.data || []).map(e => ({
         id: e.id,
         description: String(e.description || "").trim(),
         expense_date: String(e.expense_date || "").trim(),
         amount: Number(e.amount || 0)
-      }));
+      })).sort((a, b) => {
+        return a.expense_date.localeCompare(b.expense_date);
+      });
 
       populateDropdowns();
       renderFilteredViews();
@@ -576,7 +584,7 @@
     const filteredCollections = getFilteredData();
     const { paidList, unpaidList } = getMonthStatus();
 
-    // 1. Members Table with Edit Button
+    // 1. Members Table
     const memTable = document.getElementById('memberTable');
     memTable.innerHTML = '';
     allMembers.forEach(m => {
@@ -593,7 +601,7 @@
     });
     document.getElementById('badgeMemberCount').innerText = `${allMembers.length} Members`;
 
-    // 2. Collection Table with Edit Button
+    // 2. Collection Table
     let totalIncome = 0;
     const incTable = document.getElementById('incomeTable');
     incTable.innerHTML = '';
