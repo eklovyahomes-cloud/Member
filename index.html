@@ -647,6 +647,7 @@
   }
 
   function renderFilteredViews() {
+    const sMonth = document.getElementById('filterMonth').value;
     const filteredCollections = getFilteredData();
     const { paidList, unpaidList } = getMonthStatus();
 
@@ -667,7 +668,7 @@
     });
     document.getElementById('badgeMemberCount').innerText = `${allMembers.length} Members`;
 
-    // 2. Collection Table
+    // 2. Collection Table (Aamadni)
     let totalIncome = 0;
     const incTable = document.getElementById('incomeTable');
     incTable.innerHTML = '';
@@ -687,11 +688,18 @@
     });
     document.getElementById('badgeFilteredIncome').innerText = `₹${totalIncome}`;
 
-    // 3. Expenses Table
+    // 3. Expenses Table (Filtered by Selected Month)
     let totalExpense = 0;
     const expTable = document.getElementById('expenseTable');
     expTable.innerHTML = '';
-    allExpenses.forEach(e => {
+    
+    // Sirf selected mahine ke kharche filter karein (expense_date format: YYYY-MM-DD)
+    const filteredExpenses = allExpenses.filter(e => {
+      if (!sMonth) return true;
+      return e.expense_date && e.expense_date.startsWith(sMonth);
+    });
+
+    filteredExpenses.forEach(e => {
       totalExpense += e.amount;
       expTable.innerHTML += `
         <tr>
