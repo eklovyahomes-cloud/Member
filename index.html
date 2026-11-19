@@ -8,8 +8,8 @@
   <!-- PWA & Home Screen App Icon -->
   <link rel="manifest" href="./manifest.json">
   <meta name="theme-color" content="#0a2540">
-  <link rel="icon" type="image/jpeg" href="./appicon.jpeg">
-  <link rel="apple-touch-icon" href="./appicon.jpeg">
+  <link rel="icon" type="image/jpeg" href="https://raw.githubusercontent.com/eklovyahomes-cloud/Member/main/appicon.jpeg">
+  <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/eklovyahomes-cloud/Member/main/appicon.jpeg">
 
   <!-- Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -129,7 +129,7 @@
 
 <!-- SPLASH SCREEN -->
 <div id="splashScreen">
-  <img src="./appicon.jpeg" alt="Eklavya Homes Logo" class="splash-logo mb-3">
+  <img src="https://raw.githubusercontent.com/eklovyahomes-cloud/Member/main/appicon.jpeg" alt="Eklavya Homes Logo" class="splash-logo mb-3">
   <h4 class="text-warning fw-bold mt-2 mb-1">Eklavya Homes</h4>
   <p class="text-white-50 small mb-3">Together for a Better Community</p>
   <div class="spinner-border text-warning spinner-border-sm" role="status"></div>
@@ -152,7 +152,7 @@
 <div class="container">
   <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2 flex-wrap gap-2">
     <div class="d-flex align-items-center gap-2">
-      <img src="./appicon.jpeg" alt="Colony Logo" class="app-brand-icon shadow-sm">
+      <img src="https://raw.githubusercontent.com/eklovyahomes-cloud/Member/main/appicon.jpeg" alt="Colony Logo" class="app-brand-icon shadow-sm">
       <div>
         <h3 class="mb-0 fw-bold">Eklavya Homes</h3>
         <small class="text-primary fw-semibold">⚡ PostgreSQL Connected</small>
@@ -258,16 +258,20 @@
         <small class="text-white-50" style="font-size: 11px;">Tap karke list dekhein</small>
       </div>
     </div>
+    <!-- Selected Collection (Clickable) -->
     <div class="col-6 col-md-2">
-      <div class="card bg-secondary text-white p-3 text-center shadow-sm h-100">
-        <h6 class="small">Selected Collection</h6>
+      <div class="card bg-secondary text-white p-3 text-center shadow-sm clickable-card h-100" onclick="showFinanceModal('collection')">
+        <h6 class="small">Selected Collection 👆</h6>
         <h4 id="dashIncome" class="mb-0">₹0</h4>
+        <small class="text-white-50" style="font-size: 11px;">Tap karke list dekhein</small>
       </div>
     </div>
+    <!-- Total Kharch (Clickable) -->
     <div class="col-6 col-md-2">
-      <div class="card bg-warning text-dark p-3 text-center shadow-sm h-100">
-        <h6 class="small">Total Kharch</h6>
+      <div class="card bg-warning text-dark p-3 text-center shadow-sm clickable-card h-100" onclick="showFinanceModal('expense')">
+        <h6 class="small">Total Kharch 👆</h6>
         <h4 id="dashExpense" class="mb-0">₹0</h4>
+        <small class="text-dark-50" style="font-size: 11px;">Tap karke list dekhein</small>
       </div>
     </div>
     <div class="col-6 col-md-2">
@@ -387,7 +391,7 @@
   </div>
 </div>
 
-<!-- Modal: Paid / Unpaid List -->
+<!-- Modal: Paid / Unpaid / Collection / Expense List -->
 <div class="modal fade" id="memberListModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
     <div class="modal-content">
@@ -402,7 +406,7 @@
             <thead class="table-light">
               <tr>
                 <th>ID</th>
-                <th>Naam</th>
+                <th>Naam / Wajah</th>
                 <th id="modalDynamicCol">Details / Breakup</th>
               </tr>
             </thead>
@@ -580,6 +584,7 @@
     renderFilteredViews();
   }
 
+  // Super-Fast PostgreSQL Fetch with Proper Ascending Sorting
   async function fetchData(isManualRefresh = false) {
     if (isManualRefresh) showSpinner("Data refresh ho raha hai...");
     try {
@@ -593,6 +598,7 @@
       if (resCollections.error) throw resCollections.error;
       if (resExpenses.error) throw resExpenses.error;
 
+      // Unique member mapping & sorting by ID (Ascending Order)
       const uniqueMemMap = new Map();
       (resMembers.data || []).forEach(m => {
         const id = String(m.id || "").trim();
@@ -608,6 +614,7 @@
         return a.id.localeCompare(b.id, undefined, { numeric: true, sensitivity: 'base' });
       });
 
+      // Collections sorted by member_id ascending (then creation)
       allCollections = (resCollections.data || []).map(c => ({
         id: c.id,
         member_id: String(c.member_id || "").trim(),
@@ -619,6 +626,7 @@
         return a.member_id.localeCompare(b.member_id, undefined, { numeric: true, sensitivity: 'base' });
       });
 
+      // Expenses sorted by date ascending
       allExpenses = (resExpenses.data || []).map(e => ({
         id: e.id,
         description: String(e.description || "").trim(),
@@ -717,6 +725,7 @@
     const filteredCollections = getFilteredData();
     const { paidList, unpaidList } = getMonthStatus();
 
+    // 1. Members Table
     const memTable = document.getElementById('memberTable');
     memTable.innerHTML = '';
     allMembers.forEach(m => {
@@ -733,6 +742,7 @@
     });
     document.getElementById('badgeMemberCount').innerText = `${allMembers.length} Members`;
 
+    // 2. Collection Table (Aamadni)
     let totalIncome = 0;
     const incTable = document.getElementById('incomeTable');
     incTable.innerHTML = '';
@@ -752,6 +762,7 @@
     });
     document.getElementById('badgeFilteredIncome').innerText = `₹${totalIncome}`;
 
+    // 3. Expenses Table (Filtered by Selected Month)
     let totalExpense = 0;
     const expTable = document.getElementById('expenseTable');
     expTable.innerHTML = '';
@@ -772,6 +783,7 @@
     });
     document.getElementById('badgeExpenseTotal').innerText = `₹${totalExpense}`;
 
+    // 4. Update Summary Dashboard
     document.getElementById('dashMembers').innerText = allMembers.length;
     document.getElementById('dashPaidCount').innerText = paidList.length;
     document.getElementById('dashUnpaidCount').innerText = unpaidList.length;
@@ -780,6 +792,9 @@
     document.getElementById('dashBalance').innerText = `₹${totalIncome - totalExpense}`;
   }
 
+  // ==========================================
+  // EDIT LOGIC: MEMBER
+  // ==========================================
   function openEditMember(id) {
     const mem = allMembers.find(m => m.id === id);
     if (!mem) return;
@@ -816,6 +831,9 @@
     hideSpinner();
   });
 
+  // ==========================================
+  // EDIT LOGIC: COLLECTION / AMOUNT
+  // ==========================================
   function openEditCollection(colId) {
     const col = allCollections.find(c => c.id === colId);
     if (!col) return;
@@ -868,6 +886,7 @@
     }
   }
 
+  // Open Modal: Paid & Unpaid Members
   function showMemberModal(type) {
     currentModalType = type;
     const { paidList, unpaidList } = getMonthStatus();
@@ -932,40 +951,144 @@
     memberModalInstance.show();
   }
 
-  function generateShareText() {
-    const { paidList, unpaidList } = getMonthStatus();
+  // Open Modal: Selected Collection & Total Kharch
+  function showFinanceModal(type) {
+    currentModalType = type;
     const sMonth = document.getElementById('filterMonth').value;
     const sCat = document.getElementById('filterCategory').value;
 
-    let text = "";
-    if (currentModalType === 'paid') {
-      text += `🏢 *COLONY MAINTENANCE - PAID LIST*\n`;
-      text += `📅 *Mahina:* ${sMonth || 'All'} | *Category:* ${sCat}\n`;
-      text += `✅ *Kul Jama Log:* ${paidList.length}\n`;
-      text += `------------------------------------\n`;
-      if (paidList.length === 0) {
-        text += `Is filter me koi payment record nahi hai.\n`;
+    const modalTitle = document.getElementById('modalTitle');
+    const modalSubtitle = document.getElementById('modalSubtitle');
+    const modalHeaderBg = document.getElementById('modalHeaderBg');
+    const modalTableBody = document.getElementById('modalTableBody');
+    const modalDynamicCol = document.getElementById('modalDynamicCol');
+
+    modalTableBody.innerHTML = '';
+
+    if (type === 'collection') {
+      const filteredCollections = getFilteredData();
+      const total = filteredCollections.reduce((sum, c) => sum + c.amount, 0);
+
+      modalHeaderBg.className = 'modal-header bg-secondary';
+      modalTitle.innerText = `💰 Selected Collection List (₹${total})`;
+      modalSubtitle.innerText = `Mahina: ${sMonth || 'All'} | Category: ${sCat} | Kul Entries: ${filteredCollections.length}`;
+      modalDynamicCol.innerText = "Category & Rakam";
+
+      if (filteredCollections.length === 0) {
+        modalTableBody.innerHTML = `<tr><td colspan="3" class="text-center text-muted p-3">Is filter me koi collection entry nahi hai.</td></tr>`;
       } else {
-        paidList.forEach((m, idx) => {
-          const breakup = m.entries.map(e => `${e.category}: ₹${e.amount}`).join(", ");
-          text += `${idx + 1}. *${m.id}* - ${m.name} = *₹${m.paidAmount}* (${breakup})\n`;
+        filteredCollections.forEach(c => {
+          modalTableBody.innerHTML += `
+            <tr>
+              <td><strong>${c.member_id}</strong></td>
+              <td>${c.name}</td>
+              <td>
+                <span class="badge bg-success fs-6">₹${c.amount}</span>
+                <span class="badge bg-light text-dark border ms-1">${c.category}</span>
+                <div class="small text-muted">Mahina: ${c.month}</div>
+              </td>
+            </tr>`;
         });
       }
-      text += `------------------------------------\n🙏 Sabhi sahyogiyo ka dhanyawad!`;
-    } else {
-      text += `⚠️ *COLONY MAINTENANCE - UNPAID REMINDER*\n`;
-      text += `📅 *Mahina:* ${sMonth || 'All'} | *Category:* ${sCat}\n`;
-      text += `❌ *Bakaya Log:* ${unpaidList.length}\n`;
-      text += `------------------------------------\n`;
-      if (unpaidList.length === 0) {
-        text += `🎉 Sabhi members ne payment clear kar diya hai!\n`;
+    } else if (type === 'expense') {
+      const filteredExpenses = allExpenses.filter(e => !sMonth || (e.expense_date && e.expense_date.startsWith(sMonth)));
+      const total = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
+
+      modalHeaderBg.className = 'modal-header bg-warning';
+      modalTitle.innerHTML = `<span class="text-dark">🧾 Total Kharch List (₹${total})</span>`;
+      modalSubtitle.innerText = `Mahina: ${sMonth || 'All'} | Kul Kharch Entries: ${filteredExpenses.length}`;
+      modalDynamicCol.innerText = "Tareekh & Rakam";
+
+      if (filteredExpenses.length === 0) {
+        modalTableBody.innerHTML = `<tr><td colspan="3" class="text-center text-muted p-3">Is mahine koi kharch darj nahi hai.</td></tr>`;
       } else {
-        unpaidList.forEach((m, idx) => {
-          text += `${idx + 1}. *${m.id}* - ${m.name}\n`;
+        filteredExpenses.forEach((e, index) => {
+          modalTableBody.innerHTML += `
+            <tr>
+              <td><strong>#${index + 1}</strong></td>
+              <td>${e.description}</td>
+              <td>
+                <span class="badge bg-danger fs-6">₹${e.amount}</span>
+                <div class="small text-muted mt-1">📅 ${e.expense_date}</div>
+              </td>
+            </tr>`;
         });
       }
-      text += `------------------------------------\n📢 Kripya apna shulk jald se jald jama karein.`;
     }
+
+    if (!memberModalInstance) {
+      memberModalInstance = new bootstrap.Modal(document.getElementById('memberListModal'));
+    }
+    memberModalInstance.show();
+  }
+
+  function generateShareText() {
+    const sMonth = document.getElementById('filterMonth').value;
+    const sCat = document.getElementById('filterCategory').value;
+    let text = "";
+
+    if (currentModalType === 'paid' || currentModalType === 'unpaid') {
+      const { paidList, unpaidList } = getMonthStatus();
+      if (currentModalType === 'paid') {
+        text += `🏢 *COLONY MAINTENANCE - PAID LIST*\n`;
+        text += `📅 *Mahina:* ${sMonth || 'All'} | *Category:* ${sCat}\n`;
+        text += `✅ *Kul Jama Log:* ${paidList.length}\n`;
+        text += `------------------------------------\n`;
+        if (paidList.length === 0) {
+          text += `Is filter me koi payment record nahi hai.\n`;
+        } else {
+          paidList.forEach((m, idx) => {
+            const breakup = m.entries.map(e => `${e.category}: ₹${e.amount}`).join(", ");
+            text += `${idx + 1}. *${m.id}* - ${m.name} = *₹${m.paidAmount}* (${breakup})\n`;
+          });
+        }
+        text += `------------------------------------\n🙏 Sabhi sahyogiyo ka dhanyawad!`;
+      } else {
+        text += `⚠️ *COLONY MAINTENANCE - UNPAID REMINDER*\n`;
+        text += `📅 *Mahina:* ${sMonth || 'All'} | *Category:* ${sCat}\n`;
+        text += `❌ *Bakaya Log:* ${unpaidList.length}\n`;
+        text += `------------------------------------\n`;
+        if (unpaidList.length === 0) {
+          text += `🎉 Sabhi members ne payment clear kar diya hai!\n`;
+        } else {
+          unpaidList.forEach((m, idx) => {
+            text += `${idx + 1}. *${m.id}* - ${m.name}\n`;
+          });
+        }
+        text += `------------------------------------\n📢 Kripya apna shulk jald se jald jama karein.`;
+      }
+    } else if (currentModalType === 'collection') {
+      const filteredCollections = getFilteredData();
+      const total = filteredCollections.reduce((sum, c) => sum + c.amount, 0);
+      text += `💰 *EKLAVYA HOMES - COLLECTION REPORT*\n`;
+      text += `📅 *Mahina:* ${sMonth || 'All'} | *Category:* ${sCat}\n`;
+      text += `💵 *Kul Collection:* ₹${total}\n`;
+      text += `------------------------------------\n`;
+      if (filteredCollections.length === 0) {
+        text += `Koi collection record nahi hai.\n`;
+      } else {
+        filteredCollections.forEach((c, idx) => {
+          text += `${idx + 1}. *${c.member_id}* - ${c.name}: *₹${c.amount}* (${c.category})\n`;
+        });
+      }
+      text += `------------------------------------`;
+    } else if (currentModalType === 'expense') {
+      const filteredExpenses = allExpenses.filter(e => !sMonth || (e.expense_date && e.expense_date.startsWith(sMonth)));
+      const total = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
+      text += `🧾 *EKLAVYA HOMES - KHARCH (EXPENSE) REPORT*\n`;
+      text += `📅 *Mahina:* ${sMonth || 'All'}\n`;
+      text += `💸 *Kul Kharch:* ₹${total}\n`;
+      text += `------------------------------------\n`;
+      if (filteredExpenses.length === 0) {
+        text += `Is mahine koi kharch nahi hua hai.\n`;
+      } else {
+        filteredExpenses.forEach((e, idx) => {
+          text += `${idx + 1}. ${e.description} (${e.expense_date}) = *₹${e.amount}*\n`;
+        });
+      }
+      text += `------------------------------------`;
+    }
+
     return text;
   }
 
@@ -982,6 +1105,7 @@
     });
   }
 
+  // Member Submit
   document.getElementById('memberForm').addEventListener('submit', async e => {
     e.preventDefault();
     if (!checkAdminPassword()) return;
@@ -1017,6 +1141,7 @@
     }
   }
 
+  // Collection Submit
   document.getElementById('incomeForm').addEventListener('submit', async e => {
     e.preventDefault();
     if (!checkAdminPassword()) return;
@@ -1045,6 +1170,7 @@
     hideSpinner();
   });
 
+  // Expense Submit
   document.getElementById('expenseForm').addEventListener('submit', async e => {
     e.preventDefault();
     if (!checkAdminPassword()) return;
@@ -1066,6 +1192,7 @@
     hideSpinner();
   });
 
+  // Automatic Horizontal Slider Script
   window.addEventListener('DOMContentLoaded', () => {
     const slider = document.getElementById('committeeSlider');
     if (slider) {
@@ -1079,7 +1206,7 @@
     }
   });
 
-  // Initial Load (Splash screen ke piche data fetch hota rahega)
+  // Initial Load
   fetchData();
 </script>
 </body>
