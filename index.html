@@ -129,7 +129,7 @@
 
 <!-- SPLASH SCREEN -->
 <div id="splashScreen">
-  <img src="https://raw.githubusercontent.com/eklovyahomes-cloud/Member/main/appicon.jpeg" alt="Eklavya Homes Logo" class="splash-logo mb-3">
+  <img src="https://raw.githubusercontent.com/eklovyahomes-cloud/Member/main/appicon.png" alt="Eklavya Homes Logo" class="splash-logo mb-3">
   <h4 class="text-warning fw-bold mt-2 mb-1">Eklavya Homes</h4>
   <p class="text-white-50 small mb-3">Together for a Better Community</p>
   <div class="spinner-border text-warning spinner-border-sm" role="status"></div>
@@ -152,7 +152,7 @@
 <div class="container">
   <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2 flex-wrap gap-2">
     <div class="d-flex align-items-center gap-2">
-      <img src="https://raw.githubusercontent.com/eklovyahomes-cloud/Member/main/appicon.jpeg" alt="Colony Logo" class="app-brand-icon shadow-sm">
+      <img src="https://raw.githubusercontent.com/eklovyahomes-cloud/Member/main/appicon.png" alt="Colony Logo" class="app-brand-icon shadow-sm">
       <div>
         <h3 class="mb-0 fw-bold">Eklavya Homes</h3>
         <small class="text-primary fw-semibold">⚡ PostgreSQL Connected</small>
@@ -614,7 +614,7 @@
         return a.id.localeCompare(b.id, undefined, { numeric: true, sensitivity: 'base' });
       });
 
-      // Collections sorted by member_id ascending (then creation)
+      // Collections sorted by member_id ascending
       allCollections = (resCollections.data || []).map(c => ({
         id: c.id,
         member_id: String(c.member_id || "").trim(),
